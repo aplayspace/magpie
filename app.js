@@ -229,6 +229,7 @@ async function spinForContent() {
     const disruptBtn = document.getElementById('spinBtn');
 
     console.log('=== DISRUPT BUTTON CLICKED ===');
+    const startTime = performance.now();
 
     try {
         // Add disruption animation to button
@@ -242,35 +243,52 @@ async function spinForContent() {
             await new Promise(resolve => setTimeout(resolve, 800));
         }
 
-        // Randomly select a source
-        const randomSource = curatedSources[Math.floor(Math.random() * curatedSources.length)];
+        // TEST: Use two reliable sources for now
+        const testSources = [
+            {
+                name: "Wikipedia",
+                url: "https://en.wikipedia.org/wiki/Poetry"
+            },
+            {
+                name: "BBC News",
+                url: "https://www.bbc.co.uk/news/articles/crrn054nxe7o"
+            }
+        ];
 
-        // Randomly select a URL from that source
-        const randomUrl = randomSource.urls[Math.floor(Math.random() * randomSource.urls.length)];
+        // Randomly select one
+        const selected = testSources[Math.floor(Math.random() * testSources.length)];
 
         // Show source info
         const sourceInfo = document.getElementById('sourceInfo');
         const sourceName = document.getElementById('sourceName');
-        sourceName.textContent = randomSource.name;
+        sourceName.textContent = selected.name;
         sourceInfo.style.display = 'block';
 
-        console.log(`✨ Disrupting to: ${randomSource.name} - ${randomUrl}`);
+        console.log(`✨ Testing with: ${selected.name} - ${selected.url}`);
+        console.log('⏱️ Start time:', startTime);
 
-        // TEMPORARY: Just use sample texts for now (web fetching disabled for debugging)
+        // Show loading state
         textContainer.innerHTML = '<div class="loading">✨ Disrupting the mischief...</div>';
         redactedWords.clear();
 
-        console.log('⚠️ Web fetching temporarily disabled - using sample texts');
+        // Try to load the web page
+        console.log('📡 Calling loadWebPageFromUrl...');
+        await loadWebPageFromUrl(selected.url);
 
-        // Small delay for animation
-        await new Promise(resolve => setTimeout(resolve, 800));
+        const endTime = performance.now();
+        const totalTime = ((endTime - startTime) / 1000).toFixed(2);
+        console.log(`✅ TOTAL LOAD TIME: ${totalTime} seconds`);
+    } catch (outerError) {
+        const errorTime = performance.now();
+        const totalTime = ((errorTime - startTime) / 1000).toFixed(2);
+        console.error(`❌ ERROR after ${totalTime}s:`, outerError);
+        console.error('Error stack:', outerError.stack);
 
-        // Use sample text
+        // Fall back to sample text
+        console.log('↩️ Falling back to sample text');
+        const sourceInfo = document.getElementById('sourceInfo');
         sourceInfo.style.display = 'none';
         loadRandomText();
-    } catch (outerError) {
-        console.error('❌ Critical error in spinForContent:', outerError);
-        textContainer.innerHTML = '<div class="loading">Critical error occurred.<br>Please refresh the page.</div>';
     }
 }
 
@@ -288,41 +306,52 @@ function loadRandomText() {
 // Load a web page from a specific URL
 async function loadWebPageFromUrl(url) {
     const textContainer = document.getElementById('textContainer');
+    const fetchStartTime = performance.now();
 
     try {
-        console.log('Fetching URL:', url);
+        console.log('📡 Fetching URL:', url);
 
         // Check cache first
+        const cacheCheckStart = performance.now();
         const cached = getCachedArticle(url);
         if (cached) {
-            console.log('⚡ Loading from cache (instant)');
+            const cacheCheckTime = performance.now() - cacheCheckStart;
+            console.log(`⚡ Cache HIT in ${cacheCheckTime.toFixed(0)}ms - loading instantly`);
             await processWebPage(cached.html, url, cached.styles);
             return;
         }
+        console.log(`Cache miss - fetching from web (${(performance.now() - cacheCheckStart).toFixed(0)}ms)`);
 
         // Try multiple CORS proxies in PARALLEL (race them)
         const proxies = [
             {
                 url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-                isJson: true
+                isJson: true,
+                name: 'AllOrigins'
             },
             {
                 url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                isJson: false
+                isJson: false,
+                name: 'CorsProxy'
             }
         ];
 
         console.log(`🏁 Racing ${proxies.length} proxies for fastest response...`);
+        const proxyRaceStart = performance.now();
 
         // Create promise for each proxy
         const proxyPromises = proxies.map((proxy, index) => {
             return new Promise(async (resolve, reject) => {
+                const proxyStart = performance.now();
                 try {
-                    console.log(`Proxy ${index + 1} starting:`, proxy.url.substring(0, 60) + '...');
+                    console.log(`  ${proxy.name} (${index + 1}/${proxies.length}): Starting fetch...`);
 
-                    // 8 second timeout per proxy
+                    // 5 second timeout per proxy
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 8000);
+                    const timeoutId = setTimeout(() => {
+                        console.log(`  ${proxy.name}: ⏱️ Timeout after 5s`);
+                        controller.abort();
+                    }, 5000);
 
                     const response = await fetch(proxy.url, {
                         signal: controller.signal,
@@ -331,11 +360,16 @@ async function loadWebPageFromUrl(url) {
 
                     clearTimeout(timeoutId);
 
+                    const fetchTime = performance.now() - proxyStart;
+                    console.log(`  ${proxy.name}: Fetch complete in ${fetchTime.toFixed(0)}ms`);
+
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}`);
                     }
 
                     const data = await response.text();
+                    const parseTime = performance.now() - proxyStart - fetchTime;
+                    console.log(`  ${proxy.name}: Parsed response in ${parseTime.toFixed(0)}ms`);
 
                     // Parse based on proxy type
                     let html;
@@ -351,13 +385,15 @@ async function loadWebPageFromUrl(url) {
                     }
 
                     if (html && html.length > 100) {
-                        console.log(`✅ Proxy ${index + 1} succeeded! (${html.length} chars)`);
+                        const totalTime = performance.now() - proxyStart;
+                        console.log(`  ✅ ${proxy.name} WON! Total: ${totalTime.toFixed(0)}ms (${(html.length/1024).toFixed(1)}KB)`);
                         resolve(html);
                     } else {
                         throw new Error('Response too short');
                     }
                 } catch (err) {
-                    console.warn(`❌ Proxy ${index + 1} failed:`, err.message);
+                    const failTime = performance.now() - proxyStart;
+                    console.warn(`  ❌ ${proxy.name} failed after ${failTime.toFixed(0)}ms:`, err.message);
                     reject(err);
                 }
             });
@@ -365,17 +401,27 @@ async function loadWebPageFromUrl(url) {
 
         // Race all proxies - use whichever responds first
         const html = await Promise.any(proxyPromises).catch(err => {
-            console.error('All proxies failed:', err);
+            console.error('💥 All proxies failed:', err);
             throw new Error('All proxies failed to load content');
         });
 
-        console.log('🎉 Got HTML from fastest proxy!');
+        const proxyRaceTime = performance.now() - proxyRaceStart;
+        console.log(`🎉 Proxy race complete in ${proxyRaceTime.toFixed(0)}ms`);
 
         // Parse HTML and inject into container (will cache internally)
+        console.log('🔧 Processing HTML...');
+        const processStart = performance.now();
         await processWebPage(html, url);
+        const processTime = performance.now() - processStart;
+        console.log(`✅ Processing complete in ${processTime.toFixed(0)}ms`);
+
+        const totalFetchTime = performance.now() - fetchStartTime;
+        console.log(`📊 FETCH TOTAL: ${totalFetchTime.toFixed(0)}ms`);
 
     } catch (error) {
-        console.error('Error in loadWebPageFromUrl:', error);
+        const errorTime = performance.now() - fetchStartTime;
+        console.error(`💥 Error in loadWebPageFromUrl after ${errorTime.toFixed(0)}ms:`, error);
+        console.error('Stack:', error.stack);
         throw error;  // Re-throw to allow caller to handle
     }
 }
@@ -383,63 +429,101 @@ async function loadWebPageFromUrl(url) {
 // Process fetched HTML and make it redactable - FAST VERSION (no CSS)
 async function processWebPage(html, baseUrl, preloadedStyles = null) {
     const textContainer = document.getElementById('textContainer');
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
+    const processStart = performance.now();
 
     console.log('⚡ Processing web page (fast mode - text only)...');
+    console.log(`  HTML size: ${(html.length/1024).toFixed(1)}KB`);
+
+    // Parse HTML
+    const parseStart = performance.now();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    console.log(`  ⏱️ Parsed HTML in ${(performance.now() - parseStart).toFixed(0)}ms`);
 
     // Remove scripts, iframes, and navigation elements
+    const cleanStart = performance.now();
     doc.querySelectorAll('script, iframe, noscript, nav, header, footer, .nav, .header, .footer, .menu, aside, .sidebar').forEach(el => el.remove());
+    console.log(`  ⏱️ Cleaned DOM in ${(performance.now() - cleanStart).toFixed(0)}ms`);
 
     // Try to find main content area
+    const contentStart = performance.now();
     let contentElement = doc.querySelector('article, main, [role="main"], .article-body, .story-body, .content');
     if (!contentElement) {
         contentElement = doc.body;
     }
+    console.log(`  ✅ Found content in <${contentElement.tagName}> (${(performance.now() - contentStart).toFixed(0)}ms)`);
 
-    console.log('Content element found:', contentElement.tagName);
+    // Extract and preserve actual DOM structure
+    const extractStart = performance.now();
 
-    // Extract just the text content - FAST!
-    const textContent = contentElement.textContent || contentElement.innerText || '';
+    // Clone the content element to preserve styling
+    const clonedContent = contentElement.cloneNode(true);
 
-    // Split into paragraphs
-    const paragraphs = textContent
-        .split(/\n\n+/)
-        .map(p => p.trim())
-        .filter(p => p.length > 50); // Skip very short paragraphs (likely navigation/metadata)
-
-    console.log(`Extracted ${paragraphs.length} paragraphs`);
-
-    // Clear container
-    textContainer.innerHTML = '';
-
-    // Create clean, simple presentation
-    const wrapper = document.createElement('div');
-    wrapper.className = 'web-page-content simple-text';
-
-    // Add paragraphs
-    paragraphs.slice(0, 20).forEach(paragraphText => { // Limit to first 20 paragraphs for speed
-        const p = document.createElement('p');
-        p.className = 'text-paragraph';
-        p.textContent = paragraphText;
-        wrapper.appendChild(p);
+    // Convert relative URLs to absolute for images and links
+    clonedContent.querySelectorAll('img').forEach(img => {
+        if (img.src) {
+            img.src = new URL(img.src, baseUrl).href;
+        }
+        if (img.srcset) {
+            img.srcset = img.srcset.split(',').map(src => {
+                const [url, descriptor] = src.trim().split(/\s+/);
+                return new URL(url, baseUrl).href + (descriptor ? ' ' + descriptor : '');
+            }).join(', ');
+        }
     });
+
+    clonedContent.querySelectorAll('a').forEach(a => {
+        if (a.href) {
+            a.href = new URL(a.href, baseUrl).href;
+        }
+    });
+
+    console.log(`  ⏱️ Cloned and fixed URLs in ${(performance.now() - extractStart).toFixed(0)}ms`);
+
+    // Extract CSS from the page
+    console.log('  🎨 Extracting CSS...');
+    const cssStart = performance.now();
+    const styles = await extractStyles(doc, baseUrl);
+    console.log(`  ⏱️ CSS extracted in ${(performance.now() - cssStart).toFixed(0)}ms (${(styles.length/1024).toFixed(1)}KB)`);
+
+    // Clear container and build DOM
+    const buildStart = performance.now();
+    textContainer.innerHTML = '';
+    textContainer.classList.remove('disrupting-content'); // Clear animation class
+
+    // Inject styles into document head
+    if (styles) {
+        let styleElement = document.getElementById('dynamic-source-styles');
+        if (!styleElement) {
+            styleElement = document.createElement('style');
+            styleElement.id = 'dynamic-source-styles';
+            document.head.appendChild(styleElement);
+        }
+        styleElement.textContent = styles;
+    }
+
+    // Create wrapper with original content
+    const wrapper = document.createElement('div');
+    wrapper.className = 'web-page-content';
+    wrapper.appendChild(clonedContent);
 
     // Add to container
     textContainer.appendChild(wrapper);
+    console.log(`  ⏱️ Built DOM in ${(performance.now() - buildStart).toFixed(0)}ms`);
 
-    console.log('Making text redactable...');
-    const startTime = performance.now();
+    console.log(`📊 PROCESS TOTAL: ${(performance.now() - processStart).toFixed(0)}ms`);
 
     // Make text clickable immediately (no waiting for layout)
+    console.log('🖱️ Making text redactable...');
+    const redactStart = performance.now();
     setTimeout(() => {
         makeTextRedactable(wrapper);
-        const endTime = performance.now();
-        console.log(`✅ Text made redactable in ${Math.round(endTime - startTime)}ms`);
-        console.log('✅ Web page processed and rendered');
+        const redactTime = performance.now() - redactStart;
+        console.log(`  ✅ Text made redactable in ${redactTime.toFixed(0)}ms`);
+        console.log('🎉 WEB PAGE COMPLETE AND READY!');
 
-        // Cache the simplified version
-        cacheArticle(baseUrl, html, ''); // Cache with empty styles
+        // Cache the article with styles
+        cacheArticle(baseUrl, html, styles);
     }, 0);
 }
 
