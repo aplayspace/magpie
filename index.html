@@ -11,10 +11,15 @@
 <body>
     <div class="app-container">
         <header>
-            <h1>magpie</h1>
-            <div class="controls">
-                <button id="newTextBtn" class="btn">New Text</button>
-                <button id="screenshotBtn" class="btn btn-primary">Export</button>
+            <div>
+                <h1>magpie</h1>
+                <div class="controls">
+                    <button id="spinBtn" class="btn btn-spin">🎲 Spin</button>
+                    <button id="screenshotBtn" class="btn btn-primary">Export</button>
+                </div>
+            </div>
+            <div class="source-info" id="sourceInfo" style="display: none;">
+                Loading from: <span id="sourceName"></span>
             </div>
         </header>
 
@@ -23,7 +28,7 @@
         </main>
 
         <footer>
-            <p class="hint">Tap words to redact them</p>
+            <p class="hint">Tap words to redact • Press 🎲 Spin for new content</p>
         </footer>
     </div>
 

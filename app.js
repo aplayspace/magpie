@@ -1,4 +1,43 @@
-// Sample texts for the MVP
+// Curated list of open-access sources for content roulette
+const curatedSources = [
+    {
+        name: "Wikipedia",
+        urls: [
+            "https://en.wikipedia.org/wiki/Special:Random",
+            "https://en.wikipedia.org/wiki/Poetry",
+            "https://en.wikipedia.org/wiki/Erasure_poetry",
+            "https://en.wikipedia.org/wiki/New_York_City",
+            "https://en.wikipedia.org/wiki/Ocean",
+            "https://en.wikipedia.org/wiki/Democracy"
+        ]
+    },
+    {
+        name: "The Conversation",
+        urls: [
+            "https://theconversation.com/uk",
+        ]
+    },
+    {
+        name: "Literary Hub",
+        urls: [
+            "https://lithub.com/"
+        ]
+    },
+    {
+        name: "Aeon",
+        urls: [
+            "https://aeon.co/essays"
+        ]
+    },
+    {
+        name: "Public Domain Review",
+        urls: [
+            "https://publicdomainreview.org/"
+        ]
+    }
+];
+
+// Sample texts for fallback/offline use
 const sampleTexts = [
     {
         title: "Wikipedia - Artificial Intelligence",
@@ -27,13 +66,14 @@ let redactedWords = new Set();
 
 // Initialize the app
 function init() {
-    loadText(currentTextIndex);
     setupEventListeners();
+    // Load first random source on startup
+    spinForContent();
 }
 
 // Set up event listeners
 function setupEventListeners() {
-    document.getElementById('newTextBtn').addEventListener('click', loadRandomText);
+    document.getElementById('spinBtn').addEventListener('click', spinForContent);
     document.getElementById('screenshotBtn').addEventListener('click', takeScreenshot);
 }
 
@@ -101,7 +141,38 @@ function toggleRedaction(event) {
     }
 }
 
-// Load a random text
+// Spin the content roulette - randomly select from curated sources
+async function spinForContent() {
+    // Randomly select a source
+    const randomSource = curatedSources[Math.floor(Math.random() * curatedSources.length)];
+
+    // Randomly select a URL from that source
+    const randomUrl = randomSource.urls[Math.floor(Math.random() * randomSource.urls.length)];
+
+    // Show source info
+    const sourceInfo = document.getElementById('sourceInfo');
+    const sourceName = document.getElementById('sourceName');
+    sourceName.textContent = randomSource.name;
+    sourceInfo.style.display = 'block';
+
+    console.log(`Spinning to: ${randomSource.name} - ${randomUrl}`);
+
+    // Try to load the web page
+    const textContainer = document.getElementById('textContainer');
+    textContainer.innerHTML = '<div class="loading">🎲 Spinning the roulette...</div>';
+    redactedWords.clear();
+
+    try {
+        await loadWebPageFromUrl(randomUrl);
+    } catch (error) {
+        console.error('Failed to load curated source, falling back to sample text:', error);
+        // Fallback to sample text if web page fails
+        sourceInfo.style.display = 'none';
+        loadRandomText();
+    }
+}
+
+// Load a random sample text (fallback)
 function loadRandomText() {
     let newIndex;
     do {
@@ -110,6 +181,207 @@ function loadRandomText() {
 
     currentTextIndex = newIndex;
     loadText(currentTextIndex);
+}
+
+// Load a web page from a specific URL
+async function loadWebPageFromUrl(url) {
+    const textContainer = document.getElementById('textContainer');
+
+    try {
+        console.log('Fetching URL:', url);
+
+        // Try multiple CORS proxies in order
+        const proxies = [
+            `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+            `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+        ];
+
+        let html = null;
+        let lastError = null;
+
+        for (const proxyUrl of proxies) {
+            try {
+                console.log('Trying proxy:', proxyUrl);
+                const response = await fetch(proxyUrl, { timeout: 10000 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.text();
+
+                // allorigins.win returns JSON, others return raw HTML
+                if (proxyUrl.includes('allorigins.win')) {
+                    const json = JSON.parse(data);
+                    html = json.contents;
+                } else {
+                    html = data;
+                }
+
+                if (html && html.length > 100) {  // Ensure we got meaningful content
+                    console.log('Successfully fetched HTML, length:', html.length);
+                    break;
+                }
+            } catch (err) {
+                console.warn('Proxy failed:', proxyUrl, err);
+                lastError = err;
+            }
+        }
+
+        if (!html) {
+            throw lastError || new Error('All proxies failed');
+        }
+
+        // Parse HTML and inject into container
+        await processWebPage(html, url);
+
+    } catch (error) {
+        console.error('Error loading page:', error);
+        throw error;  // Re-throw to allow caller to handle
+    }
+}
+
+// Process fetched HTML and make it redactable
+async function processWebPage(html, baseUrl) {
+    const textContainer = document.getElementById('textContainer');
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Remove scripts and iframes
+    doc.querySelectorAll('script, iframe, noscript').forEach(el => el.remove());
+
+    // Convert relative URLs to absolute
+    convertRelativeUrls(doc, baseUrl);
+
+    // Extract styles
+    const styles = extractStyles(doc, baseUrl);
+
+    // Try to find main content area (article, main, or body)
+    let contentElement = doc.querySelector('article, main, [role="main"], .article-body, .story-body');
+    if (!contentElement) {
+        contentElement = doc.body;
+    }
+
+    // Clear container and add styles
+    textContainer.innerHTML = '';
+
+    // Inject collected styles
+    if (styles) {
+        const styleEl = document.createElement('style');
+        styleEl.textContent = styles;
+        textContainer.appendChild(styleEl);
+    }
+
+    // Create wrapper to preserve page styling
+    const wrapper = document.createElement('div');
+    wrapper.className = 'web-page-content';
+    wrapper.innerHTML = contentElement.innerHTML;
+
+    // Make all text clickable
+    makeTextRedactable(wrapper);
+
+    textContainer.appendChild(wrapper);
+}
+
+// Convert relative URLs to absolute
+function convertRelativeUrls(doc, baseUrl) {
+    const base = new URL(baseUrl);
+
+    // Convert image sources
+    doc.querySelectorAll('img[src]').forEach(img => {
+        try {
+            img.src = new URL(img.getAttribute('src'), base).href;
+        } catch (e) {}
+    });
+
+    // Convert link hrefs
+    doc.querySelectorAll('link[href]').forEach(link => {
+        try {
+            link.href = new URL(link.getAttribute('href'), base).href;
+        } catch (e) {}
+    });
+
+    // Convert CSS background images
+    doc.querySelectorAll('[style*="url"]').forEach(el => {
+        try {
+            const style = el.getAttribute('style');
+            const updated = style.replace(/url\(['"]?([^'")\s]+)['"]?\)/g, (match, url) => {
+                try {
+                    return `url('${new URL(url, base).href}')`;
+                } catch (e) {
+                    return match;
+                }
+            });
+            el.setAttribute('style', updated);
+        } catch (e) {}
+    });
+}
+
+// Extract and consolidate styles from the page
+function extractStyles(doc, baseUrl) {
+    let styles = '';
+
+    // Extract inline styles
+    doc.querySelectorAll('style').forEach(styleTag => {
+        styles += styleTag.textContent + '\n';
+    });
+
+    // Note: External stylesheets would require separate fetch requests
+    // For now, we rely on inline styles and style attributes
+    // which is sufficient for most article content
+
+    return styles;
+}
+
+// Make all text in an element redactable
+function makeTextRedactable(element) {
+    const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+    );
+
+    const textNodes = [];
+    while (walker.nextNode()) {
+        // Skip empty or whitespace-only text nodes
+        if (walker.currentNode.textContent.trim()) {
+            textNodes.push(walker.currentNode);
+        }
+    }
+
+    textNodes.forEach((textNode, nodeIndex) => {
+        const text = textNode.textContent;
+        const words = text.split(/(\s+)/);  // Split but keep whitespace
+
+        const fragment = document.createDocumentFragment();
+
+        words.forEach((word, wordIndex) => {
+            if (word.match(/\S/)) {  // Contains non-whitespace
+                // Further split into words and punctuation
+                const tokens = word.split(/\b/);
+
+                tokens.forEach(token => {
+                    if (token.match(/\w+/)) {  // It's a word
+                        const span = document.createElement('span');
+                        span.className = 'word';
+                        span.textContent = token;
+                        span.dataset.index = `web-${nodeIndex}-${wordIndex}-${token}`;
+                        span.addEventListener('click', toggleRedaction);
+                        fragment.appendChild(span);
+                    } else if (token) {  // Punctuation or other
+                        fragment.appendChild(document.createTextNode(token));
+                    }
+                });
+            } else {
+                // Whitespace
+                fragment.appendChild(document.createTextNode(word));
+            }
+        });
+
+        textNode.parentNode.replaceChild(fragment, textNode);
+    });
 }
 
 // Take a screenshot of the redacted text

@@ -29,8 +29,35 @@ header {
     border-bottom: 2px solid #000;
     z-index: 100;
     display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+header > div:first-of-type {
+    display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
+}
+
+.url-input-container {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+#urlInput {
+    flex: 1;
+    padding: 0.5rem;
+    border: 2px solid #000;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+#urlInput:focus {
+    outline: none;
+    border-color: #333;
 }
 
 h1 {
@@ -67,6 +94,31 @@ h1 {
 
 .btn-primary:active {
     background: #333;
+}
+
+.btn-spin {
+    background: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+    font-size: 1rem;
+}
+
+.btn-spin:active {
+    background: #45a049;
+}
+
+.source-info {
+    padding: 0.5rem;
+    background: #f0f0f0;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #666;
+    text-align: center;
+}
+
+.source-info span {
+    font-weight: 600;
+    color: #333;
 }
 
 .text-container {
@@ -154,4 +206,43 @@ footer {
 .text-container.no-select {
     user-select: none;
     -webkit-user-select: none;
+}
+
+/* Web page content wrapper */
+.web-page-content {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.web-page-content img {
+    max-width: 100%;
+    height: auto;
+}
+
+.web-page-content a {
+    pointer-events: none; /* Disable links in loaded pages */
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Ensure loaded page content is readable */
+.web-page-content {
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Override any fixed/sticky positioning from loaded pages */
+.web-page-content * {
+    position: relative !important;
+}
+
+/* Loading message */
+.loading {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #666;
+}
+
+.loading ul {
+    list-style: disc;
 }
