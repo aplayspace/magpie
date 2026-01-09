@@ -370,21 +370,19 @@ async function processWebPage(html, baseUrl, preloadedStyles = null) {
     const clonedContent = contentElement.cloneNode(true);
     wrapper.appendChild(clonedContent);
 
-    // Temporarily add to container to measure height
+    // Add to container
     textContainer.appendChild(wrapper);
 
-    // Wait for layout to complete before limiting viewport
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            // Limit content to viewport height for shareable screenshots
-            limitToViewport(wrapper, textContainer);
+    console.log('Making text redactable...');
+    const startTime = performance.now();
 
-            // Make all text clickable
-            makeTextRedactable(wrapper);
-
-            console.log('✅ Web page processed and rendered');
-        });
-    });
+    // Make all text clickable - defer to next frame for better UX
+    setTimeout(() => {
+        makeTextRedactable(wrapper);
+        const endTime = performance.now();
+        console.log(`✅ Text made redactable in ${Math.round(endTime - startTime)}ms`);
+        console.log('✅ Web page processed and rendered');
+    }, 0);
 }
 
 // Limit content to fit within the viewport for single-screen exports
@@ -550,54 +548,86 @@ async function extractStyles(doc, baseUrl) {
     return styles;
 }
 
-// Make all text in an element redactable
+// Make all text in an element redactable - optimized version
 function makeTextRedactable(element) {
+    // Limit to first 200 text nodes for performance
+    const MAX_TEXT_NODES = 200;
+    let processedNodes = 0;
+
     const walker = document.createTreeWalker(
         element,
         NodeFilter.SHOW_TEXT,
-        null,
+        {
+            acceptNode: function(node) {
+                // Skip whitespace-only nodes
+                if (!node.textContent.trim()) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                // Limit total nodes processed
+                if (processedNodes >= MAX_TEXT_NODES) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        },
         false
     );
 
     const textNodes = [];
-    while (walker.nextNode()) {
-        // Skip empty or whitespace-only text nodes
-        if (walker.currentNode.textContent.trim()) {
-            textNodes.push(walker.currentNode);
+    while (walker.nextNode() && textNodes.length < MAX_TEXT_NODES) {
+        textNodes.push(walker.currentNode);
+        processedNodes++;
+    }
+
+    console.log(`Processing ${textNodes.length} text nodes...`);
+
+    // Process in batches to avoid blocking UI
+    let batchIndex = 0;
+    const BATCH_SIZE = 20;
+
+    function processBatch() {
+        const endIndex = Math.min(batchIndex + BATCH_SIZE, textNodes.length);
+
+        for (let i = batchIndex; i < endIndex; i++) {
+            const textNode = textNodes[i];
+            const text = textNode.textContent;
+
+            // Simple word splitting - faster than complex regex
+            const words = text.split(/\s+/);
+            const fragment = document.createDocumentFragment();
+
+            words.forEach((word, wordIndex) => {
+                if (word.trim()) {
+                    const span = document.createElement('span');
+                    span.className = 'word';
+                    span.textContent = word;
+                    span.dataset.index = `web-${i}-${wordIndex}`;
+                    span.addEventListener('click', toggleRedaction);
+                    fragment.appendChild(span);
+
+                    // Add space after word (except last)
+                    if (wordIndex < words.length - 1) {
+                        fragment.appendChild(document.createTextNode(' '));
+                    }
+                }
+            });
+
+            if (textNode.parentNode) {
+                textNode.parentNode.replaceChild(fragment, textNode);
+            }
+        }
+
+        batchIndex = endIndex;
+
+        if (batchIndex < textNodes.length) {
+            // Process next batch
+            setTimeout(processBatch, 0);
+        } else {
+            console.log('✅ All text nodes processed');
         }
     }
 
-    textNodes.forEach((textNode, nodeIndex) => {
-        const text = textNode.textContent;
-        const words = text.split(/(\s+)/);  // Split but keep whitespace
-
-        const fragment = document.createDocumentFragment();
-
-        words.forEach((word, wordIndex) => {
-            if (word.match(/\S/)) {  // Contains non-whitespace
-                // Further split into words and punctuation
-                const tokens = word.split(/\b/);
-
-                tokens.forEach(token => {
-                    if (token.match(/\w+/)) {  // It's a word
-                        const span = document.createElement('span');
-                        span.className = 'word';
-                        span.textContent = token;
-                        span.dataset.index = `web-${nodeIndex}-${wordIndex}-${token}`;
-                        span.addEventListener('click', toggleRedaction);
-                        fragment.appendChild(span);
-                    } else if (token) {  // Punctuation or other
-                        fragment.appendChild(document.createTextNode(token));
-                    }
-                });
-            } else {
-                // Whitespace
-                fragment.appendChild(document.createTextNode(word));
-            }
-        });
-
-        textNode.parentNode.replaceChild(fragment, textNode);
-    });
+    processBatch();
 }
 
 // Take a screenshot of the redacted text

@@ -153,7 +153,7 @@ h1 {
 .text-container {
     flex: 1;
     padding: 0;
-    overflow: hidden; /* No scrolling - content limited to viewport */
+    overflow-y: auto; /* Enable scrolling to see content */
     background: white;
 }
 
