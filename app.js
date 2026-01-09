@@ -155,17 +155,25 @@ async function spinForContent() {
     sourceName.textContent = randomSource.name;
     sourceInfo.style.display = 'block';
 
-    console.log(`Spinning to: ${randomSource.name} - ${randomUrl}`);
+    console.log(`🎲 Spinning to: ${randomSource.name} - ${randomUrl}`);
 
     // Try to load the web page
     const textContainer = document.getElementById('textContainer');
-    textContainer.innerHTML = '<div class="loading">🎲 Spinning the roulette...</div>';
+    textContainer.innerHTML = '<div class="loading">🎲 Spinning the roulette...<br><small>Loading from ' + randomSource.name + '</small></div>';
     redactedWords.clear();
 
     try {
         await loadWebPageFromUrl(randomUrl);
+        console.log('✅ Successfully loaded web content');
     } catch (error) {
-        console.error('Failed to load curated source, falling back to sample text:', error);
+        console.warn('⚠️ Failed to load curated source, falling back to sample text:', error);
+
+        // Show user-friendly message
+        textContainer.innerHTML = '<div class="loading">Could not load web page.<br>Using sample text instead...</div>';
+
+        // Small delay so user sees the message
+        await new Promise(resolve => setTimeout(resolve, 800));
+
         // Fallback to sample text if web page fails
         sourceInfo.style.display = 'none';
         loadRandomText();
@@ -203,7 +211,17 @@ async function loadWebPageFromUrl(url) {
         for (const proxyUrl of proxies) {
             try {
                 console.log('Trying proxy:', proxyUrl);
-                const response = await fetch(proxyUrl, { timeout: 10000 });
+
+                // Create fetch with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const response = await fetch(proxyUrl, {
+                    signal: controller.signal,
+                    mode: 'cors'
+                });
+
+                clearTimeout(timeoutId);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
@@ -213,8 +231,13 @@ async function loadWebPageFromUrl(url) {
 
                 // allorigins.win returns JSON, others return raw HTML
                 if (proxyUrl.includes('allorigins.win')) {
-                    const json = JSON.parse(data);
-                    html = json.contents;
+                    try {
+                        const json = JSON.parse(data);
+                        html = json.contents;
+                    } catch (parseErr) {
+                        console.warn('Failed to parse JSON from allorigins:', parseErr);
+                        throw parseErr;
+                    }
                 } else {
                     html = data;
                 }
@@ -224,12 +247,13 @@ async function loadWebPageFromUrl(url) {
                     break;
                 }
             } catch (err) {
-                console.warn('Proxy failed:', proxyUrl, err);
+                console.warn('Proxy failed:', proxyUrl, err.name, err.message);
                 lastError = err;
             }
         }
 
         if (!html) {
+            console.error('All proxies failed. Last error:', lastError);
             throw lastError || new Error('All proxies failed');
         }
 
@@ -237,7 +261,7 @@ async function loadWebPageFromUrl(url) {
         await processWebPage(html, url);
 
     } catch (error) {
-        console.error('Error loading page:', error);
+        console.error('Error in loadWebPageFromUrl:', error);
         throw error;  // Re-throw to allow caller to handle
     }
 }
