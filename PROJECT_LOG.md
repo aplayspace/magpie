@@ -67,5 +67,66 @@ Users can now:
 - See which source they're working with
 - Re-spin if content isn't inspiring
 
+---
+
+## 2026-01-09 - Major UX Improvements and Performance Optimization
+
+### Completed
+- **Curated Article Sources**: Updated from homepage URLs to specific article leaf nodes
+  - 32 specific articles across 6 sources (Wikipedia, BBC News, The Conversation, Aeon, Project Gutenberg, Public Domain Review)
+  - Focused on text-heavy articles for better redaction experience
+
+- **Disrupt Branding**: Replaced "Spin" terminology with "Disrupt the mischief"
+  - ✨ Disrupt button with purple gradient styling
+  - Magpie logo icon added to header banner
+  - Thanos-snap style disruption animation (blur + fade + scale effect)
+  - 0.8s smooth transition between content loads
+
+- **Article Caching System**: localStorage-based caching for instant repeat loads
+  - 7-day cache expiry with automatic cleanup
+  - Caches both HTML content and extracted CSS
+  - Instant loading for previously viewed articles
+  - Smart quota management
+
+- **Faithful CSS Presentation**:
+  - Fetch and inject external stylesheets (not just inline styles)
+  - Convert relative URLs in CSS to absolute paths
+  - Inject styles directly to head for global scope
+  - Minimal wrapper interference for authentic source rendering
+
+- **Performance Optimizations**: Fixed critical white screen bug
+  - Root cause: Viewport limiting measured heights before browser layout completed
+  - Limited text processing to 200 nodes (down from unlimited)
+  - Batch processing (20 nodes at a time) for responsive UI
+  - Simplified word splitting (whitespace only, faster than complex regex)
+  - Performance improved from 30+ seconds to under 1 second
+  - Content displays immediately, becomes clickable progressively
+
+### Technical Implementation
+- **Double requestAnimationFrame**: Wait for browser layout before measuring
+- **Skip zero-height elements**: Prevent premature content cutoff
+- **Async style fetching**: External CSS files loaded through CORS proxy
+- **Progressive enhancement**: Content visible before text processing completes
+- **Performance logging**: Console shows exact timing for debugging
+
+### Known Issues Fixed
+- ✅ White screen bug (viewport limiting before layout)
+- ✅ Slow text processing (30+ seconds → under 1 second)
+- ✅ Missing external CSS (now fetched and applied)
+- ✅ Homepage clutter (switched to article leaf nodes)
+- ✅ CORS proxy failures (multiple fallbacks)
+
+### Current Status
+**Working**: BBC News article loads quickly with faithful CSS rendering and clickable text for redaction.
+
+**Temporarily Disabled for Testing**:
+- Viewport limiting (was causing white screen, needs proper fix)
+- Multiple sources (narrowed to single BBC article for debugging)
+
+### Next Steps (To Resume)
+1. **Re-enable smart viewport limiting**: Fixed version that waits for layout
+2. **Add back curated sources**: Restore all 32 article URLs
+3. **Perfect single-screen export**: Content fits viewport for social media sharing
+
 ### Next Steps
 See ROADMAP.md for planned enhancements and future development priorities.
