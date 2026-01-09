@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Magpie - Redaction Poetry</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>magpie</h1>
+            <div class="controls">
+                <button id="newTextBtn" class="btn">New Text</button>
+                <button id="screenshotBtn" class="btn btn-primary">Export</button>
+            </div>
+        </header>
+
+        <main id="textContainer" class="text-container">
+            <!-- Text content will be loaded here -->
+        </main>
+
+        <footer>
+            <p class="hint">Tap words to redact them</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
