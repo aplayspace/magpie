@@ -23,6 +23,12 @@ const curatedSources = [
         ]
     },
     {
+        name: "BBC News",
+        urls: [
+            "https://www.bbc.co.uk/news/articles/crrn054nxe7o"
+        ]
+    },
+    {
         name: "The Conversation",
         urls: [
             "https://theconversation.com/how-the-language-we-speak-affects-the-way-we-think-156212",
@@ -85,6 +91,60 @@ const sampleTexts = [
 
 let currentTextIndex = 0;
 let redactedWords = new Set();
+
+// Article cache for faster loading
+const CACHE_PREFIX = 'magpie_article_';
+const CACHE_EXPIRY_DAYS = 7;
+
+// Cache helper functions
+function getCachedArticle(url) {
+    try {
+        const cacheKey = CACHE_PREFIX + btoa(url).substring(0, 50);
+        const cached = localStorage.getItem(cacheKey);
+        if (!cached) return null;
+
+        const data = JSON.parse(cached);
+        const now = Date.now();
+
+        // Check if cache is expired
+        if (now - data.timestamp > CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000) {
+            localStorage.removeItem(cacheKey);
+            return null;
+        }
+
+        console.log('✅ Using cached article:', url.substring(0, 50) + '...');
+        return data;
+    } catch (e) {
+        console.warn('Cache read error:', e);
+        return null;
+    }
+}
+
+function cacheArticle(url, html, styles) {
+    try {
+        const cacheKey = CACHE_PREFIX + btoa(url).substring(0, 50);
+        const data = {
+            html,
+            styles,
+            timestamp: Date.now(),
+            url
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        console.log('💾 Cached article:', url.substring(0, 50) + '...');
+    } catch (e) {
+        // Handle quota exceeded or other errors
+        console.warn('Cache write error:', e);
+        // Try to clear old cache entries
+        try {
+            const keys = Object.keys(localStorage);
+            keys.filter(k => k.startsWith(CACHE_PREFIX))
+                .slice(0, 5)
+                .forEach(k => localStorage.removeItem(k));
+        } catch (clearError) {
+            console.warn('Cache clear error:', clearError);
+        }
+    }
+}
 
 // Initialize the app
 function init() {
@@ -233,6 +293,13 @@ async function loadWebPageFromUrl(url) {
     try {
         console.log('Fetching URL:', url);
 
+        // Check cache first
+        const cached = getCachedArticle(url);
+        if (cached) {
+            await processWebPage(cached.html, url, cached.styles);
+            return;
+        }
+
         // Try multiple CORS proxies in order
         const proxies = [
             `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
@@ -292,7 +359,7 @@ async function loadWebPageFromUrl(url) {
             throw lastError || new Error('All proxies failed');
         }
 
-        // Parse HTML and inject into container
+        // Parse HTML and inject into container (will cache internally)
         await processWebPage(html, url);
 
     } catch (error) {
@@ -302,7 +369,7 @@ async function loadWebPageFromUrl(url) {
 }
 
 // Process fetched HTML and make it redactable
-async function processWebPage(html, baseUrl) {
+async function processWebPage(html, baseUrl, preloadedStyles = null) {
     const textContainer = document.getElementById('textContainer');
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -315,8 +382,13 @@ async function processWebPage(html, baseUrl) {
     // Convert relative URLs to absolute
     convertRelativeUrls(doc, baseUrl);
 
-    // Extract styles (now async)
-    const styles = await extractStyles(doc, baseUrl);
+    // Extract styles (use preloaded if available, otherwise fetch)
+    let styles = preloadedStyles;
+    if (!styles) {
+        styles = await extractStyles(doc, baseUrl);
+        // Cache the article with fetched styles
+        cacheArticle(baseUrl, html, styles);
+    }
 
     // Try to find main content area (article, main, or body)
     let contentElement = doc.querySelector('article, main, [role="main"], .article-body, .story-body, .content');
