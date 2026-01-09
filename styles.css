@@ -124,7 +124,7 @@ h1 {
 .text-container {
     flex: 1;
     padding: 0;
-    overflow-y: auto;
+    overflow: hidden; /* No scrolling - content limited to viewport */
     background: white;
 }
 
@@ -230,6 +230,11 @@ footer {
 
 .web-page-content a {
     pointer-events: none !important; /* Disable links in loaded pages */
+}
+
+/* Content fade indicator (hidden in screenshots) */
+.screenshot-mode .content-fade {
+    display: none;
 }
 
 /* Loading message */

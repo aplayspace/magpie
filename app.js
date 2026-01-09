@@ -333,11 +333,59 @@ async function processWebPage(html, baseUrl) {
     const clonedContent = contentElement.cloneNode(true);
     wrapper.appendChild(clonedContent);
 
+    // Temporarily add to container to measure height
+    textContainer.appendChild(wrapper);
+
+    // Limit content to viewport height for shareable screenshots
+    limitToViewport(wrapper, textContainer);
+
     // Make all text clickable
     makeTextRedactable(wrapper);
 
-    textContainer.appendChild(wrapper);
     console.log('✅ Web page processed and rendered');
+}
+
+// Limit content to fit within the viewport for single-screen exports
+function limitToViewport(wrapper, container) {
+    // Get available height (viewport - header - footer)
+    const header = document.querySelector('header');
+    const footer = document.querySelector('footer');
+    const headerHeight = header ? header.offsetHeight : 0;
+    const footerHeight = footer ? footer.offsetHeight : 0;
+    const availableHeight = window.innerHeight - headerHeight - footerHeight - 40; // 40px padding
+
+    console.log('Available height for content:', availableHeight);
+
+    // Get all child elements
+    const children = Array.from(wrapper.children);
+    let currentHeight = 0;
+    let cutoffIndex = children.length;
+
+    for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        const childHeight = child.offsetHeight;
+
+        if (currentHeight + childHeight > availableHeight) {
+            cutoffIndex = i;
+            console.log(`Content limited at element ${i} (height: ${currentHeight}px)`);
+            break;
+        }
+
+        currentHeight += childHeight;
+    }
+
+    // Remove elements beyond viewport
+    if (cutoffIndex < children.length) {
+        for (let i = cutoffIndex; i < children.length; i++) {
+            children[i].remove();
+        }
+
+        // Add subtle fade indicator at bottom
+        const fadeIndicator = document.createElement('div');
+        fadeIndicator.className = 'content-fade';
+        fadeIndicator.style.cssText = 'height: 20px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1)); margin-top: -20px; position: relative; z-index: 10;';
+        wrapper.appendChild(fadeIndicator);
+    }
 }
 
 // Convert relative URLs to absolute
