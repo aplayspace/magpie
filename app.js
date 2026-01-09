@@ -1,38 +1,60 @@
 // Curated list of open-access sources for content roulette
+// All URLs point to specific articles (leaf nodes) for clean text-focused content
 const curatedSources = [
     {
         name: "Wikipedia",
         urls: [
-            "https://en.wikipedia.org/wiki/Special:Random",
             "https://en.wikipedia.org/wiki/Poetry",
             "https://en.wikipedia.org/wiki/Erasure_poetry",
+            "https://en.wikipedia.org/wiki/Blackout_poetry",
+            "https://en.wikipedia.org/wiki/Mary_Ruefle",
+            "https://en.wikipedia.org/wiki/Found_poetry",
+            "https://en.wikipedia.org/wiki/Collage",
+            "https://en.wikipedia.org/wiki/Dadaism",
+            "https://en.wikipedia.org/wiki/Surrealism",
+            "https://en.wikipedia.org/wiki/William_S._Burroughs",
+            "https://en.wikipedia.org/wiki/Cut-up_technique",
             "https://en.wikipedia.org/wiki/New_York_City",
             "https://en.wikipedia.org/wiki/Ocean",
-            "https://en.wikipedia.org/wiki/Democracy"
+            "https://en.wikipedia.org/wiki/Democracy",
+            "https://en.wikipedia.org/wiki/Memory",
+            "https://en.wikipedia.org/wiki/Time",
+            "https://en.wikipedia.org/wiki/Language"
         ]
     },
     {
         name: "The Conversation",
         urls: [
-            "https://theconversation.com/uk",
-        ]
-    },
-    {
-        name: "Literary Hub",
-        urls: [
-            "https://lithub.com/"
+            "https://theconversation.com/how-the-language-we-speak-affects-the-way-we-think-156212",
+            "https://theconversation.com/what-is-art-for-147458",
+            "https://theconversation.com/why-we-remember-some-things-and-forget-others-152904",
+            "https://theconversation.com/the-power-of-poetry-in-a-pandemic-143287"
         ]
     },
     {
         name: "Aeon",
         urls: [
-            "https://aeon.co/essays"
+            "https://aeon.co/essays/how-does-language-change-the-way-we-think",
+            "https://aeon.co/essays/why-we-need-to-take-poetry-more-seriously",
+            "https://aeon.co/essays/what-the-history-of-the-book-can-tell-us-about-books-today",
+            "https://aeon.co/essays/memory-is-like-a-film-edited-by-our-unconscious-minds"
+        ]
+    },
+    {
+        name: "Project Gutenberg",
+        urls: [
+            "https://www.gutenberg.org/files/1342/1342-h/1342-h.htm",  // Pride and Prejudice
+            "https://www.gutenberg.org/files/84/84-h/84-h.htm",        // Frankenstein
+            "https://www.gutenberg.org/files/2701/2701-h/2701-h.htm",  // Moby Dick
+            "https://www.gutenberg.org/files/11/11-h/11-h.htm"         // Alice in Wonderland
         ]
     },
     {
         name: "Public Domain Review",
         urls: [
-            "https://publicdomainreview.org/"
+            "https://publicdomainreview.org/essay/the-art-of-music-copying",
+            "https://publicdomainreview.org/essay/a-divine-madness",
+            "https://publicdomainreview.org/essay/on-scissors-as-weapons"
         ]
     }
 ];
