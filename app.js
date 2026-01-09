@@ -1,66 +1,10 @@
 // Curated list of open-access sources for content roulette
-// All URLs point to specific articles (leaf nodes) for clean text-focused content
+// Currently testing with single BBC article
 const curatedSources = [
-    {
-        name: "Wikipedia",
-        urls: [
-            "https://en.wikipedia.org/wiki/Poetry",
-            "https://en.wikipedia.org/wiki/Erasure_poetry",
-            "https://en.wikipedia.org/wiki/Blackout_poetry",
-            "https://en.wikipedia.org/wiki/Mary_Ruefle",
-            "https://en.wikipedia.org/wiki/Found_poetry",
-            "https://en.wikipedia.org/wiki/Collage",
-            "https://en.wikipedia.org/wiki/Dadaism",
-            "https://en.wikipedia.org/wiki/Surrealism",
-            "https://en.wikipedia.org/wiki/William_S._Burroughs",
-            "https://en.wikipedia.org/wiki/Cut-up_technique",
-            "https://en.wikipedia.org/wiki/New_York_City",
-            "https://en.wikipedia.org/wiki/Ocean",
-            "https://en.wikipedia.org/wiki/Democracy",
-            "https://en.wikipedia.org/wiki/Memory",
-            "https://en.wikipedia.org/wiki/Time",
-            "https://en.wikipedia.org/wiki/Language"
-        ]
-    },
     {
         name: "BBC News",
         urls: [
             "https://www.bbc.co.uk/news/articles/crrn054nxe7o"
-        ]
-    },
-    {
-        name: "The Conversation",
-        urls: [
-            "https://theconversation.com/how-the-language-we-speak-affects-the-way-we-think-156212",
-            "https://theconversation.com/what-is-art-for-147458",
-            "https://theconversation.com/why-we-remember-some-things-and-forget-others-152904",
-            "https://theconversation.com/the-power-of-poetry-in-a-pandemic-143287"
-        ]
-    },
-    {
-        name: "Aeon",
-        urls: [
-            "https://aeon.co/essays/how-does-language-change-the-way-we-think",
-            "https://aeon.co/essays/why-we-need-to-take-poetry-more-seriously",
-            "https://aeon.co/essays/what-the-history-of-the-book-can-tell-us-about-books-today",
-            "https://aeon.co/essays/memory-is-like-a-film-edited-by-our-unconscious-minds"
-        ]
-    },
-    {
-        name: "Project Gutenberg",
-        urls: [
-            "https://www.gutenberg.org/files/1342/1342-h/1342-h.htm",  // Pride and Prejudice
-            "https://www.gutenberg.org/files/84/84-h/84-h.htm",        // Frankenstein
-            "https://www.gutenberg.org/files/2701/2701-h/2701-h.htm",  // Moby Dick
-            "https://www.gutenberg.org/files/11/11-h/11-h.htm"         // Alice in Wonderland
-        ]
-    },
-    {
-        name: "Public Domain Review",
-        urls: [
-            "https://publicdomainreview.org/essay/the-art-of-music-copying",
-            "https://publicdomainreview.org/essay/a-divine-madness",
-            "https://publicdomainreview.org/essay/on-scissors-as-weapons"
         ]
     }
 ];
@@ -228,50 +172,58 @@ async function spinForContent() {
     const textContainer = document.getElementById('textContainer');
     const disruptBtn = document.getElementById('spinBtn');
 
-    // Add disruption animation to button
-    disruptBtn.classList.add('disrupting');
-    setTimeout(() => disruptBtn.classList.remove('disrupting'), 600);
-
-    // If there's existing content, animate it dissolving (Thanos snap style)
-    const existingContent = textContainer.querySelector('.web-page-content, .paragraph');
-    if (existingContent) {
-        existingContent.parentElement.classList.add('disrupting-content');
-        await new Promise(resolve => setTimeout(resolve, 800));
-    }
-
-    // Randomly select a source
-    const randomSource = curatedSources[Math.floor(Math.random() * curatedSources.length)];
-
-    // Randomly select a URL from that source
-    const randomUrl = randomSource.urls[Math.floor(Math.random() * randomSource.urls.length)];
-
-    // Show source info
-    const sourceInfo = document.getElementById('sourceInfo');
-    const sourceName = document.getElementById('sourceName');
-    sourceName.textContent = randomSource.name;
-    sourceInfo.style.display = 'block';
-
-    console.log(`✨ Disrupting to: ${randomSource.name} - ${randomUrl}`);
-
-    // Try to load the web page
-    textContainer.innerHTML = '<div class="loading">✨ Disrupting the mischief...<br><small>Loading from ' + randomSource.name + '</small></div>';
-    redactedWords.clear();
+    console.log('=== DISRUPT BUTTON CLICKED ===');
 
     try {
-        await loadWebPageFromUrl(randomUrl);
-        console.log('✅ Successfully loaded web content');
-    } catch (error) {
-        console.warn('⚠️ Failed to load curated source, falling back to sample text:', error);
+        // Add disruption animation to button
+        disruptBtn.classList.add('disrupting');
+        setTimeout(() => disruptBtn.classList.remove('disrupting'), 600);
 
-        // Show user-friendly message
-        textContainer.innerHTML = '<div class="loading">Could not load web page.<br>Using sample text instead...</div>';
+        // If there's existing content, animate it dissolving (Thanos snap style)
+        const existingContent = textContainer.querySelector('.web-page-content, .paragraph');
+        if (existingContent) {
+            existingContent.parentElement.classList.add('disrupting-content');
+            await new Promise(resolve => setTimeout(resolve, 800));
+        }
 
-        // Small delay so user sees the message
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Randomly select a source
+        const randomSource = curatedSources[Math.floor(Math.random() * curatedSources.length)];
 
-        // Fallback to sample text if web page fails
-        sourceInfo.style.display = 'none';
-        loadRandomText();
+        // Randomly select a URL from that source
+        const randomUrl = randomSource.urls[Math.floor(Math.random() * randomSource.urls.length)];
+
+        // Show source info
+        const sourceInfo = document.getElementById('sourceInfo');
+        const sourceName = document.getElementById('sourceName');
+        sourceName.textContent = randomSource.name;
+        sourceInfo.style.display = 'block';
+
+        console.log(`✨ Disrupting to: ${randomSource.name} - ${randomUrl}`);
+
+        // Try to load the web page
+        textContainer.innerHTML = '<div class="loading">✨ Disrupting the mischief...<br><small>Loading from ' + randomSource.name + '</small></div>';
+        redactedWords.clear();
+
+        try {
+            await loadWebPageFromUrl(randomUrl);
+            console.log('✅ Successfully loaded web content');
+        } catch (error) {
+            console.error('⚠️ Failed to load curated source:', error);
+            console.error('Error stack:', error.stack);
+
+            // Show user-friendly message
+            textContainer.innerHTML = '<div class="loading">Could not load web page.<br>Using sample text instead...<br><small style="color: red;">Error: ' + error.message + '</small></div>';
+
+            // Small delay so user sees the message
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Fallback to sample text if web page fails
+            sourceInfo.style.display = 'none';
+            loadRandomText();
+        }
+    } catch (outerError) {
+        console.error('❌ Critical error in spinForContent:', outerError);
+        textContainer.innerHTML = '<div class="loading">Critical error occurred.<br>Please refresh the page.</div>';
     }
 }
 
@@ -421,55 +373,89 @@ async function processWebPage(html, baseUrl, preloadedStyles = null) {
     // Temporarily add to container to measure height
     textContainer.appendChild(wrapper);
 
-    // Limit content to viewport height for shareable screenshots
-    limitToViewport(wrapper, textContainer);
+    // Wait for layout to complete before limiting viewport
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            // Limit content to viewport height for shareable screenshots
+            limitToViewport(wrapper, textContainer);
 
-    // Make all text clickable
-    makeTextRedactable(wrapper);
+            // Make all text clickable
+            makeTextRedactable(wrapper);
 
-    console.log('✅ Web page processed and rendered');
+            console.log('✅ Web page processed and rendered');
+        });
+    });
 }
 
 // Limit content to fit within the viewport for single-screen exports
 function limitToViewport(wrapper, container) {
-    // Get available height (viewport - header - footer)
-    const header = document.querySelector('header');
-    const footer = document.querySelector('footer');
-    const headerHeight = header ? header.offsetHeight : 0;
-    const footerHeight = footer ? footer.offsetHeight : 0;
-    const availableHeight = window.innerHeight - headerHeight - footerHeight - 40; // 40px padding
+    try {
+        // Get available height (viewport - header - footer)
+        const header = document.querySelector('header');
+        const footer = document.querySelector('footer');
+        const headerHeight = header ? header.offsetHeight : 0;
+        const footerHeight = footer ? footer.offsetHeight : 0;
+        const availableHeight = window.innerHeight - headerHeight - footerHeight - 40; // 40px padding
 
-    console.log('Available height for content:', availableHeight);
+        console.log('Available height for content:', availableHeight);
 
-    // Get all child elements
-    const children = Array.from(wrapper.children);
-    let currentHeight = 0;
-    let cutoffIndex = children.length;
-
-    for (let i = 0; i < children.length; i++) {
-        const child = children[i];
-        const childHeight = child.offsetHeight;
-
-        if (currentHeight + childHeight > availableHeight) {
-            cutoffIndex = i;
-            console.log(`Content limited at element ${i} (height: ${currentHeight}px)`);
-            break;
+        // Get the actual content container (first child of wrapper)
+        const contentContainer = wrapper.firstElementChild;
+        if (!contentContainer) {
+            console.warn('No content container found');
+            return;
         }
 
-        currentHeight += childHeight;
-    }
-
-    // Remove elements beyond viewport
-    if (cutoffIndex < children.length) {
-        for (let i = cutoffIndex; i < children.length; i++) {
-            children[i].remove();
+        // Get all child elements from the content container
+        const children = Array.from(contentContainer.children);
+        if (children.length === 0) {
+            console.warn('No children found to limit');
+            return;
         }
 
-        // Add subtle fade indicator at bottom
-        const fadeIndicator = document.createElement('div');
-        fadeIndicator.className = 'content-fade';
-        fadeIndicator.style.cssText = 'height: 20px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1)); margin-top: -20px; position: relative; z-index: 10;';
-        wrapper.appendChild(fadeIndicator);
+        let currentHeight = 0;
+        let cutoffIndex = children.length;
+        let hasNonZeroHeight = false;
+
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i];
+            const childHeight = child.offsetHeight;
+
+            // Track if we've seen any elements with actual height
+            if (childHeight > 0) {
+                hasNonZeroHeight = true;
+            }
+
+            // Only count elements with actual height
+            if (childHeight > 0 && currentHeight + childHeight > availableHeight) {
+                cutoffIndex = i;
+                console.log(`Content limited at element ${i} (height: ${currentHeight}px)`);
+                break;
+            }
+
+            currentHeight += childHeight;
+        }
+
+        // If no elements have height yet, don't cut anything off
+        if (!hasNonZeroHeight) {
+            console.log('No elements with height found, skipping viewport limiting');
+            return;
+        }
+
+        // Remove elements beyond viewport
+        if (cutoffIndex < children.length) {
+            for (let i = cutoffIndex; i < children.length; i++) {
+                children[i].remove();
+            }
+
+            // Add subtle fade indicator at bottom
+            const fadeIndicator = document.createElement('div');
+            fadeIndicator.className = 'content-fade';
+            fadeIndicator.style.cssText = 'height: 20px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1)); margin-top: -20px; position: relative; z-index: 10;';
+            contentContainer.appendChild(fadeIndicator);
+        }
+    } catch (error) {
+        console.error('Error in limitToViewport:', error);
     }
 }
 
