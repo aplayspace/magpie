@@ -32,5 +32,40 @@ Prototype is live and ready for testing. Users can now:
 - Create and export erasure poetry screenshots
 - Share creations on social media
 
+---
+
+## 2026-01-09 - Content Roulette Feature
+
+### Completed
+- Implemented content roulette system with curated open-access sources
+- Added 🎲 Spin button to randomly load content from quality publications
+- Curated list of 5 reliable sources:
+  - Wikipedia (including random article feature)
+  - The Conversation
+  - Literary Hub
+  - Aeon
+  - Public Domain Review
+- Implemented web page fetching with CORS proxy fallbacks
+- Preserved original CSS styling of fetched pages ("digital materiality")
+- Made all text in fetched pages clickable for redaction
+- Added source attribution to show current publication
+- Implemented automatic fallback to sample texts if web fetch fails
+- Updated UI with green Spin button and improved controls
+
+### Technical Implementation
+- Multiple CORS proxy fallback system (3 services)
+- DOM TreeWalker for making text nodes interactive
+- Relative-to-absolute URL conversion for images and styles
+- CSS extraction and injection from fetched pages
+- Smart content area detection (article, main elements)
+
+### User Experience
+Users can now:
+- Click 🎲 Spin to get random content from curated sources
+- Experience real web pages with original formatting
+- Create erasure poetry from high-quality publications
+- See which source they're working with
+- Re-spin if content isn't inspiring
+
 ### Next Steps
 See ROADMAP.md for planned enhancements and future development priorities.
