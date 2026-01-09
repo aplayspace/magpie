@@ -153,7 +153,7 @@ h1 {
 .text-container {
     flex: 1;
     padding: 0;
-    overflow-y: auto; /* Enable scrolling to see content */
+    overflow: hidden; /* No scrolling - single screen view */
     background: white;
 }
 
@@ -244,11 +244,24 @@ footer {
     -webkit-user-select: none;
 }
 
-/* Web page content wrapper - faithful CSS presentation */
+/* Web page content wrapper - clean simple text */
 .web-page-content {
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    padding: 2rem 1.5rem;
+}
+
+.web-page-content.simple-text {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #222;
+}
+
+.text-paragraph {
+    margin-bottom: 1.5rem;
+    text-align: left;
 }
 
 /* Only apply critical overrides */

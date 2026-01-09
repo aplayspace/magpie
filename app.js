@@ -1,10 +1,66 @@
 // Curated list of open-access sources for content roulette
-// Currently testing with single BBC article
+// All URLs point to specific articles (leaf nodes) for clean text-focused content
 const curatedSources = [
+    {
+        name: "Wikipedia",
+        urls: [
+            "https://en.wikipedia.org/wiki/Poetry",
+            "https://en.wikipedia.org/wiki/Erasure_poetry",
+            "https://en.wikipedia.org/wiki/Blackout_poetry",
+            "https://en.wikipedia.org/wiki/Mary_Ruefle",
+            "https://en.wikipedia.org/wiki/Found_poetry",
+            "https://en.wikipedia.org/wiki/Collage",
+            "https://en.wikipedia.org/wiki/Dadaism",
+            "https://en.wikipedia.org/wiki/Surrealism",
+            "https://en.wikipedia.org/wiki/William_S._Burroughs",
+            "https://en.wikipedia.org/wiki/Cut-up_technique",
+            "https://en.wikipedia.org/wiki/New_York_City",
+            "https://en.wikipedia.org/wiki/Ocean",
+            "https://en.wikipedia.org/wiki/Democracy",
+            "https://en.wikipedia.org/wiki/Memory",
+            "https://en.wikipedia.org/wiki/Time",
+            "https://en.wikipedia.org/wiki/Language"
+        ]
+    },
     {
         name: "BBC News",
         urls: [
             "https://www.bbc.co.uk/news/articles/crrn054nxe7o"
+        ]
+    },
+    {
+        name: "The Conversation",
+        urls: [
+            "https://theconversation.com/how-the-language-we-speak-affects-the-way-we-think-156212",
+            "https://theconversation.com/what-is-art-for-147458",
+            "https://theconversation.com/why-we-remember-some-things-and-forget-others-152904",
+            "https://theconversation.com/the-power-of-poetry-in-a-pandemic-143287"
+        ]
+    },
+    {
+        name: "Aeon",
+        urls: [
+            "https://aeon.co/essays/how-does-language-change-the-way-we-think",
+            "https://aeon.co/essays/why-we-need-to-take-poetry-more-seriously",
+            "https://aeon.co/essays/what-the-history-of-the-book-can-tell-us-about-books-today",
+            "https://aeon.co/essays/memory-is-like-a-film-edited-by-our-unconscious-minds"
+        ]
+    },
+    {
+        name: "Project Gutenberg",
+        urls: [
+            "https://www.gutenberg.org/files/1342/1342-h/1342-h.htm",  // Pride and Prejudice
+            "https://www.gutenberg.org/files/84/84-h/84-h.htm",        // Frankenstein
+            "https://www.gutenberg.org/files/2701/2701-h/2701-h.htm",  // Moby Dick
+            "https://www.gutenberg.org/files/11/11-h/11-h.htm"         // Alice in Wonderland
+        ]
+    },
+    {
+        name: "Public Domain Review",
+        urls: [
+            "https://publicdomainreview.org/essay/the-art-of-music-copying",
+            "https://publicdomainreview.org/essay/a-divine-madness",
+            "https://publicdomainreview.org/essay/on-scissors-as-weapons"
         ]
     }
 ];
@@ -200,27 +256,18 @@ async function spinForContent() {
 
         console.log(`✨ Disrupting to: ${randomSource.name} - ${randomUrl}`);
 
-        // Try to load the web page
-        textContainer.innerHTML = '<div class="loading">✨ Disrupting the mischief...<br><small>Loading from ' + randomSource.name + '</small></div>';
+        // TEMPORARY: Just use sample texts for now (web fetching disabled for debugging)
+        textContainer.innerHTML = '<div class="loading">✨ Disrupting the mischief...</div>';
         redactedWords.clear();
 
-        try {
-            await loadWebPageFromUrl(randomUrl);
-            console.log('✅ Successfully loaded web content');
-        } catch (error) {
-            console.error('⚠️ Failed to load curated source:', error);
-            console.error('Error stack:', error.stack);
+        console.log('⚠️ Web fetching temporarily disabled - using sample texts');
 
-            // Show user-friendly message
-            textContainer.innerHTML = '<div class="loading">Could not load web page.<br>Using sample text instead...<br><small style="color: red;">Error: ' + error.message + '</small></div>';
+        // Small delay for animation
+        await new Promise(resolve => setTimeout(resolve, 800));
 
-            // Small delay so user sees the message
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            // Fallback to sample text if web page fails
-            sourceInfo.style.display = 'none';
-            loadRandomText();
-        }
+        // Use sample text
+        sourceInfo.style.display = 'none';
+        loadRandomText();
     } catch (outerError) {
         console.error('❌ Critical error in spinForContent:', outerError);
         textContainer.innerHTML = '<div class="loading">Critical error occurred.<br>Please refresh the page.</div>';
@@ -248,68 +295,81 @@ async function loadWebPageFromUrl(url) {
         // Check cache first
         const cached = getCachedArticle(url);
         if (cached) {
+            console.log('⚡ Loading from cache (instant)');
             await processWebPage(cached.html, url, cached.styles);
             return;
         }
 
-        // Try multiple CORS proxies in order
+        // Try multiple CORS proxies in PARALLEL (race them)
         const proxies = [
-            `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-            `https://corsproxy.io/?${encodeURIComponent(url)}`,
-            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+            {
+                url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                isJson: true
+            },
+            {
+                url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                isJson: false
+            }
         ];
 
-        let html = null;
-        let lastError = null;
+        console.log(`🏁 Racing ${proxies.length} proxies for fastest response...`);
 
-        for (const proxyUrl of proxies) {
-            try {
-                console.log('Trying proxy:', proxyUrl);
+        // Create promise for each proxy
+        const proxyPromises = proxies.map((proxy, index) => {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    console.log(`Proxy ${index + 1} starting:`, proxy.url.substring(0, 60) + '...');
 
-                // Create fetch with timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                    // 8 second timeout per proxy
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-                const response = await fetch(proxyUrl, {
-                    signal: controller.signal,
-                    mode: 'cors'
-                });
+                    const response = await fetch(proxy.url, {
+                        signal: controller.signal,
+                        mode: 'cors'
+                    });
 
-                clearTimeout(timeoutId);
+                    clearTimeout(timeoutId);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const data = await response.text();
-
-                // allorigins.win returns JSON, others return raw HTML
-                if (proxyUrl.includes('allorigins.win')) {
-                    try {
-                        const json = JSON.parse(data);
-                        html = json.contents;
-                    } catch (parseErr) {
-                        console.warn('Failed to parse JSON from allorigins:', parseErr);
-                        throw parseErr;
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
                     }
-                } else {
-                    html = data;
-                }
 
-                if (html && html.length > 100) {  // Ensure we got meaningful content
-                    console.log('Successfully fetched HTML, length:', html.length);
-                    break;
-                }
-            } catch (err) {
-                console.warn('Proxy failed:', proxyUrl, err.name, err.message);
-                lastError = err;
-            }
-        }
+                    const data = await response.text();
 
-        if (!html) {
-            console.error('All proxies failed. Last error:', lastError);
-            throw lastError || new Error('All proxies failed');
-        }
+                    // Parse based on proxy type
+                    let html;
+                    if (proxy.isJson) {
+                        try {
+                            const json = JSON.parse(data);
+                            html = json.contents;
+                        } catch (parseErr) {
+                            throw new Error('JSON parse failed');
+                        }
+                    } else {
+                        html = data;
+                    }
+
+                    if (html && html.length > 100) {
+                        console.log(`✅ Proxy ${index + 1} succeeded! (${html.length} chars)`);
+                        resolve(html);
+                    } else {
+                        throw new Error('Response too short');
+                    }
+                } catch (err) {
+                    console.warn(`❌ Proxy ${index + 1} failed:`, err.message);
+                    reject(err);
+                }
+            });
+        });
+
+        // Race all proxies - use whichever responds first
+        const html = await Promise.any(proxyPromises).catch(err => {
+            console.error('All proxies failed:', err);
+            throw new Error('All proxies failed to load content');
+        });
+
+        console.log('🎉 Got HTML from fastest proxy!');
 
         // Parse HTML and inject into container (will cache internally)
         await processWebPage(html, url);
@@ -320,55 +380,50 @@ async function loadWebPageFromUrl(url) {
     }
 }
 
-// Process fetched HTML and make it redactable
+// Process fetched HTML and make it redactable - FAST VERSION (no CSS)
 async function processWebPage(html, baseUrl, preloadedStyles = null) {
     const textContainer = document.getElementById('textContainer');
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    console.log('Processing web page...');
+    console.log('⚡ Processing web page (fast mode - text only)...');
 
     // Remove scripts, iframes, and navigation elements
-    doc.querySelectorAll('script, iframe, noscript, nav, header, footer, .nav, .header, .footer, .menu').forEach(el => el.remove());
+    doc.querySelectorAll('script, iframe, noscript, nav, header, footer, .nav, .header, .footer, .menu, aside, .sidebar').forEach(el => el.remove());
 
-    // Convert relative URLs to absolute
-    convertRelativeUrls(doc, baseUrl);
-
-    // Extract styles (use preloaded if available, otherwise fetch)
-    let styles = preloadedStyles;
-    if (!styles) {
-        styles = await extractStyles(doc, baseUrl);
-        // Cache the article with fetched styles
-        cacheArticle(baseUrl, html, styles);
-    }
-
-    // Try to find main content area (article, main, or body)
+    // Try to find main content area
     let contentElement = doc.querySelector('article, main, [role="main"], .article-body, .story-body, .content');
     if (!contentElement) {
-        // Try to find the body content, excluding headers/footers
         contentElement = doc.body;
     }
 
     console.log('Content element found:', contentElement.tagName);
 
+    // Extract just the text content - FAST!
+    const textContent = contentElement.textContent || contentElement.innerText || '';
+
+    // Split into paragraphs
+    const paragraphs = textContent
+        .split(/\n\n+/)
+        .map(p => p.trim())
+        .filter(p => p.length > 50); // Skip very short paragraphs (likely navigation/metadata)
+
+    console.log(`Extracted ${paragraphs.length} paragraphs`);
+
     // Clear container
     textContainer.innerHTML = '';
 
-    // Inject styles directly for faithful rendering
-    if (styles) {
-        const styleEl = document.createElement('style');
-        styleEl.textContent = styles;
-        document.head.appendChild(styleEl);  // Add to head for global scope
-        console.log('Injected styles, length:', styles.length);
-    }
-
-    // Create wrapper with minimal interference
+    // Create clean, simple presentation
     const wrapper = document.createElement('div');
-    wrapper.className = 'web-page-content';
+    wrapper.className = 'web-page-content simple-text';
 
-    // Clone the content element to preserve all attributes and structure
-    const clonedContent = contentElement.cloneNode(true);
-    wrapper.appendChild(clonedContent);
+    // Add paragraphs
+    paragraphs.slice(0, 20).forEach(paragraphText => { // Limit to first 20 paragraphs for speed
+        const p = document.createElement('p');
+        p.className = 'text-paragraph';
+        p.textContent = paragraphText;
+        wrapper.appendChild(p);
+    });
 
     // Add to container
     textContainer.appendChild(wrapper);
@@ -376,12 +431,15 @@ async function processWebPage(html, baseUrl, preloadedStyles = null) {
     console.log('Making text redactable...');
     const startTime = performance.now();
 
-    // Make all text clickable - defer to next frame for better UX
+    // Make text clickable immediately (no waiting for layout)
     setTimeout(() => {
         makeTextRedactable(wrapper);
         const endTime = performance.now();
         console.log(`✅ Text made redactable in ${Math.round(endTime - startTime)}ms`);
         console.log('✅ Web page processed and rendered');
+
+        // Cache the simplified version
+        cacheArticle(baseUrl, html, ''); // Cache with empty styles
     }, 0);
 }
 
@@ -395,20 +453,32 @@ function limitToViewport(wrapper, container) {
         const footerHeight = footer ? footer.offsetHeight : 0;
         const availableHeight = window.innerHeight - headerHeight - footerHeight - 40; // 40px padding
 
+        console.log('=== VIEWPORT LIMITING ===');
         console.log('Available height for content:', availableHeight);
+        console.log('Wrapper children count:', wrapper.children.length);
 
         // Get the actual content container (first child of wrapper)
         const contentContainer = wrapper.firstElementChild;
         if (!contentContainer) {
-            console.warn('No content container found');
+            console.warn('No content container found in wrapper');
             return;
         }
 
+        console.log('Content container tag:', contentContainer.tagName);
+        console.log('Content container height:', contentContainer.offsetHeight);
+
         // Get all child elements from the content container
         const children = Array.from(contentContainer.children);
+        console.log('Children count:', children.length);
+
         if (children.length === 0) {
-            console.warn('No children found to limit');
+            console.warn('No children found to limit - content may be in text nodes');
             return;
+        }
+
+        // Log first few children heights for debugging
+        for (let i = 0; i < Math.min(5, children.length); i++) {
+            console.log(`Child ${i} (${children[i].tagName}): height = ${children[i].offsetHeight}px`);
         }
 
         let currentHeight = 0;
@@ -427,21 +497,28 @@ function limitToViewport(wrapper, container) {
             // Only count elements with actual height
             if (childHeight > 0 && currentHeight + childHeight > availableHeight) {
                 cutoffIndex = i;
-                console.log(`Content limited at element ${i} (height: ${currentHeight}px)`);
+                console.log(`✂️ Content limited at element ${i} (accumulated height: ${currentHeight}px, available: ${availableHeight}px)`);
                 break;
             }
 
             currentHeight += childHeight;
         }
 
+        console.log(`Total accumulated height: ${currentHeight}px`);
+        console.log(`Has non-zero height elements: ${hasNonZeroHeight}`);
+        console.log(`Cutoff index: ${cutoffIndex} of ${children.length}`);
+
         // If no elements have height yet, don't cut anything off
         if (!hasNonZeroHeight) {
-            console.log('No elements with height found, skipping viewport limiting');
+            console.warn('⚠️ No elements with height found, skipping viewport limiting');
             return;
         }
 
         // Remove elements beyond viewport
         if (cutoffIndex < children.length) {
+            const removedCount = children.length - cutoffIndex;
+            console.log(`Removing ${removedCount} elements beyond viewport`);
+
             for (let i = cutoffIndex; i < children.length; i++) {
                 children[i].remove();
             }
@@ -451,9 +528,13 @@ function limitToViewport(wrapper, container) {
             fadeIndicator.className = 'content-fade';
             fadeIndicator.style.cssText = 'height: 20px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1)); margin-top: -20px; position: relative; z-index: 10;';
             contentContainer.appendChild(fadeIndicator);
+            console.log('✅ Viewport limiting complete');
+        } else {
+            console.log('✅ All content fits in viewport, no limiting needed');
         }
     } catch (error) {
-        console.error('Error in limitToViewport:', error);
+        console.error('❌ Error in limitToViewport:', error);
+        console.error(error.stack);
     }
 }
 
@@ -495,56 +576,73 @@ function convertRelativeUrls(doc, baseUrl) {
 async function extractStyles(doc, baseUrl) {
     let styles = '';
 
-    // Extract inline styles
+    // Extract inline styles (fast)
     doc.querySelectorAll('style').forEach(styleTag => {
         styles += styleTag.textContent + '\n';
     });
 
-    // Extract and fetch external stylesheets
+    // Limit external stylesheet fetching for speed
     const styleLinks = doc.querySelectorAll('link[rel="stylesheet"]');
+    const MAX_STYLESHEETS = 3; // Only fetch first 3 for speed
+    const STYLESHEET_TIMEOUT = 2000; // 2 second timeout per stylesheet
+
+    console.log(`Found ${styleLinks.length} external stylesheets, fetching max ${MAX_STYLESHEETS}`);
+
     const base = new URL(baseUrl);
+    const fetchPromises = [];
 
-    console.log(`Found ${styleLinks.length} external stylesheets`);
+    // Fetch stylesheets in parallel (much faster)
+    for (let i = 0; i < Math.min(styleLinks.length, MAX_STYLESHEETS); i++) {
+        const link = styleLinks[i];
+        const href = link.getAttribute('href');
+        if (!href) continue;
 
-    for (const link of styleLinks) {
-        try {
-            const href = link.getAttribute('href');
-            if (!href) continue;
+        const cssUrl = new URL(href, base).href;
 
-            const cssUrl = new URL(href, base).href;
-            console.log('Fetching CSS:', cssUrl);
+        const fetchPromise = (async () => {
+            try {
+                console.log(`Fetching CSS ${i + 1}:`, cssUrl.substring(0, 60) + '...');
 
-            // Try to fetch the CSS file through proxy
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cssUrl)}`;
+                // Try to fetch the CSS file through proxy with timeout
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cssUrl)}`;
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), STYLESHEET_TIMEOUT);
 
-            const response = await fetch(proxyUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
+                const response = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
 
-            if (response.ok) {
-                const css = await response.text();
-                // Fix relative URLs in CSS (for images, fonts, etc.)
-                const fixedCss = css.replace(/url\(['"]?([^'")\s]+)['"]?\)/g, (match, url) => {
-                    if (url.startsWith('data:') || url.startsWith('http')) {
-                        return match;
-                    }
-                    try {
-                        const absoluteUrl = new URL(url, cssUrl).href;
-                        return `url('${absoluteUrl}')`;
-                    } catch (e) {
-                        return match;
-                    }
-                });
-                styles += fixedCss + '\n';
-                console.log('✅ Loaded CSS:', cssUrl.substring(0, 50) + '...');
+                if (response.ok) {
+                    const css = await response.text();
+                    // Fix relative URLs in CSS (for images, fonts, etc.)
+                    const fixedCss = css.replace(/url\(['"]?([^'")\s]+)['"]?\)/g, (match, url) => {
+                        if (url.startsWith('data:') || url.startsWith('http')) {
+                            return match;
+                        }
+                        try {
+                            const absoluteUrl = new URL(url, cssUrl).href;
+                            return `url('${absoluteUrl}')`;
+                        } catch (e) {
+                            return match;
+                        }
+                    });
+                    console.log(`✅ Loaded CSS ${i + 1} (${css.length} chars)`);
+                    return fixedCss;
+                }
+            } catch (err) {
+                console.warn(`⚠️ Failed to fetch stylesheet ${i + 1}:`, err.message);
             }
-        } catch (err) {
-            console.warn('Failed to fetch stylesheet:', err.message);
-        }
+            return '';
+        })();
+
+        fetchPromises.push(fetchPromise);
     }
 
+    // Wait for all stylesheets to load (in parallel)
+    const fetchedStyles = await Promise.all(fetchPromises);
+    styles += fetchedStyles.join('\n');
+
+    console.log(`📦 Total CSS loaded: ${styles.length} characters`);
     return styles;
 }
 

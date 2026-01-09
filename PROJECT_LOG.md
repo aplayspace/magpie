@@ -130,3 +130,91 @@ Users can now:
 
 ### Next Steps
 See ROADMAP.md for planned enhancements and future development priorities.
+
+---
+
+## 2026-01-09 - Performance Crisis and Simplification
+
+### Issue Encountered
+Despite previous optimizations, the app experienced persistent loading failures:
+- White screen on content load
+- 30+ second load times
+- Content not appearing even with cached articles
+- User experience severely degraded
+
+### Troubleshooting Attempts
+
+1. **Re-enabled viewport limiting with layout timing**
+   - Restored all 32 curated article sources
+   - Added double requestAnimationFrame to wait for layout
+   - Added zero-height element detection
+   - Result: Still not loading
+
+2. **Optimized CSS fetching**
+   - Limited to max 3 stylesheets (from unlimited)
+   - Made stylesheet fetching parallel with Promise.all
+   - Reduced timeout to 2 seconds per stylesheet
+   - Result: Still slow, content stuck on "Loading from Wikipedia"
+
+3. **Optimized CORS proxy fetching**
+   - Changed from sequential proxy tries to parallel racing with Promise.any()
+   - Two proxies race simultaneously, fastest wins
+   - Reduced timeout to 8 seconds
+   - Result: Still not loading fast enough
+
+4. **Removed CSS entirely (text-only mode)**
+   - Completely eliminated CSS fetching overhead
+   - Extract only textContent from HTML
+   - Split into paragraphs, limit to 20
+   - Simple Georgia serif font for clean typography
+   - Result: Still experiencing white screen/loading issues
+
+### Final Solution: Temporary Fallback
+
+**Web fetching temporarily disabled** - Using sample texts only until root cause is identified
+- Modified spinForContent() to skip web fetching
+- Falls back to built-in sample texts immediately
+- Allows app to remain functional while debugging continues
+
+### Technical Changes
+
+**app.js modifications:**
+- Parallel proxy racing with Promise.any()
+- Parallel CSS fetching with Promise.all() (now disabled)
+- Text-only extraction mode (no CSS preservation)
+- Web fetching disabled in spinForContent()
+
+**styles.css modifications:**
+- Changed .text-container overflow from auto to hidden (single-screen view)
+- Added .simple-text and .text-paragraph classes for clean text presentation
+
+### Current Status
+
+**Working:**
+- Sample text mode functional
+- Word redaction works
+- Export functionality intact
+- Disrupt button loads different sample texts
+
+**Disabled/Pending:**
+- Web content fetching (temporarily disabled)
+- CSS preservation (removed for speed)
+- 32 curated sources (in code but not used)
+- Viewport limiting (may still have issues)
+
+### Root Cause Analysis Needed
+
+The persistent loading failure suggests a fundamental issue beyond CSS/proxy optimization:
+- Possible CORS/security policy changes
+- Browser rendering pipeline issues
+- Race condition in async loading
+- localStorage quota exceeded
+- Proxy services unreliable/blocked
+
+### Next Steps
+
+1. **Debug web fetching in isolation** - Test proxies and content extraction separately
+2. **Add comprehensive error logging** - Catch and report all fetch/parse failures
+3. **Test on different devices/browsers** - Isolate if issue is environment-specific
+4. **Consider alternative approach** - Backend proxy service or different content strategy
+5. **Re-enable features incrementally** - Once root cause found, restore functionality step by step
