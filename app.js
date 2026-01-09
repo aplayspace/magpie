@@ -165,6 +165,20 @@ function toggleRedaction(event) {
 
 // Spin the content roulette - randomly select from curated sources
 async function spinForContent() {
+    const textContainer = document.getElementById('textContainer');
+    const disruptBtn = document.getElementById('spinBtn');
+
+    // Add disruption animation to button
+    disruptBtn.classList.add('disrupting');
+    setTimeout(() => disruptBtn.classList.remove('disrupting'), 600);
+
+    // If there's existing content, animate it dissolving (Thanos snap style)
+    const existingContent = textContainer.querySelector('.web-page-content, .paragraph');
+    if (existingContent) {
+        existingContent.parentElement.classList.add('disrupting-content');
+        await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
     // Randomly select a source
     const randomSource = curatedSources[Math.floor(Math.random() * curatedSources.length)];
 
@@ -177,11 +191,10 @@ async function spinForContent() {
     sourceName.textContent = randomSource.name;
     sourceInfo.style.display = 'block';
 
-    console.log(`🎲 Spinning to: ${randomSource.name} - ${randomUrl}`);
+    console.log(`✨ Disrupting to: ${randomSource.name} - ${randomUrl}`);
 
     // Try to load the web page
-    const textContainer = document.getElementById('textContainer');
-    textContainer.innerHTML = '<div class="loading">🎲 Disrupting the mischief...<br><small>Loading from ' + randomSource.name + '</small></div>';
+    textContainer.innerHTML = '<div class="loading">✨ Disrupting the mischief...<br><small>Loading from ' + randomSource.name + '</small></div>';
     redactedWords.clear();
 
     try {

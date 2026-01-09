@@ -64,6 +64,14 @@ h1 {
     font-size: 1.5rem;
     font-weight: 700;
     text-transform: lowercase;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo-icon {
+    height: 2rem;
+    width: auto;
 }
 
 .controls {
@@ -96,15 +104,36 @@ h1 {
     background: #333;
 }
 
-.btn-spin {
-    background: #4CAF50;
+.btn-disrupt {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    border-color: #4CAF50;
+    border-color: #667eea;
     font-size: 1rem;
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-spin:active {
-    background: #45a049;
+.btn-disrupt:active {
+    background: linear-gradient(135deg, #5568d3 0%, #6a4291 100%);
+}
+
+.btn-disrupt.disrupting {
+    animation: disruptPulse 0.6s ease-out;
+}
+
+@keyframes disruptPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    }
 }
 
 .source-info {
@@ -235,6 +264,29 @@ footer {
 /* Content fade indicator (hidden in screenshots) */
 .screenshot-mode .content-fade {
     display: none;
+}
+
+/* Disruption animation - Thanos snap style */
+@keyframes disrupt {
+    0% {
+        opacity: 1;
+        filter: blur(0px);
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        filter: blur(2px);
+        transform: scale(0.98);
+    }
+    100% {
+        opacity: 0;
+        filter: blur(5px);
+        transform: scale(0.95);
+    }
+}
+
+.disrupting-content {
+    animation: disrupt 0.8s ease-out forwards;
 }
 
 /* Loading message */
