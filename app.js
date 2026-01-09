@@ -159,7 +159,7 @@ async function spinForContent() {
 
     // Try to load the web page
     const textContainer = document.getElementById('textContainer');
-    textContainer.innerHTML = '<div class="loading">🎲 Spinning the roulette...<br><small>Loading from ' + randomSource.name + '</small></div>';
+    textContainer.innerHTML = '<div class="loading">🎲 Disrupting the mischief...<br><small>Loading from ' + randomSource.name + '</small></div>';
     redactedWords.clear();
 
     try {
@@ -272,40 +272,50 @@ async function processWebPage(html, baseUrl) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    // Remove scripts and iframes
-    doc.querySelectorAll('script, iframe, noscript').forEach(el => el.remove());
+    console.log('Processing web page...');
+
+    // Remove scripts, iframes, and navigation elements
+    doc.querySelectorAll('script, iframe, noscript, nav, header, footer, .nav, .header, .footer, .menu').forEach(el => el.remove());
 
     // Convert relative URLs to absolute
     convertRelativeUrls(doc, baseUrl);
 
-    // Extract styles
-    const styles = extractStyles(doc, baseUrl);
+    // Extract styles (now async)
+    const styles = await extractStyles(doc, baseUrl);
 
     // Try to find main content area (article, main, or body)
-    let contentElement = doc.querySelector('article, main, [role="main"], .article-body, .story-body');
+    let contentElement = doc.querySelector('article, main, [role="main"], .article-body, .story-body, .content');
     if (!contentElement) {
+        // Try to find the body content, excluding headers/footers
         contentElement = doc.body;
     }
 
-    // Clear container and add styles
+    console.log('Content element found:', contentElement.tagName);
+
+    // Clear container
     textContainer.innerHTML = '';
 
-    // Inject collected styles
+    // Inject styles directly for faithful rendering
     if (styles) {
         const styleEl = document.createElement('style');
         styleEl.textContent = styles;
-        textContainer.appendChild(styleEl);
+        document.head.appendChild(styleEl);  // Add to head for global scope
+        console.log('Injected styles, length:', styles.length);
     }
 
-    // Create wrapper to preserve page styling
+    // Create wrapper with minimal interference
     const wrapper = document.createElement('div');
     wrapper.className = 'web-page-content';
-    wrapper.innerHTML = contentElement.innerHTML;
+
+    // Clone the content element to preserve all attributes and structure
+    const clonedContent = contentElement.cloneNode(true);
+    wrapper.appendChild(clonedContent);
 
     // Make all text clickable
     makeTextRedactable(wrapper);
 
     textContainer.appendChild(wrapper);
+    console.log('✅ Web page processed and rendered');
 }
 
 // Convert relative URLs to absolute
@@ -343,7 +353,7 @@ function convertRelativeUrls(doc, baseUrl) {
 }
 
 // Extract and consolidate styles from the page
-function extractStyles(doc, baseUrl) {
+async function extractStyles(doc, baseUrl) {
     let styles = '';
 
     // Extract inline styles
@@ -351,9 +361,50 @@ function extractStyles(doc, baseUrl) {
         styles += styleTag.textContent + '\n';
     });
 
-    // Note: External stylesheets would require separate fetch requests
-    // For now, we rely on inline styles and style attributes
-    // which is sufficient for most article content
+    // Extract and fetch external stylesheets
+    const styleLinks = doc.querySelectorAll('link[rel="stylesheet"]');
+    const base = new URL(baseUrl);
+
+    console.log(`Found ${styleLinks.length} external stylesheets`);
+
+    for (const link of styleLinks) {
+        try {
+            const href = link.getAttribute('href');
+            if (!href) continue;
+
+            const cssUrl = new URL(href, base).href;
+            console.log('Fetching CSS:', cssUrl);
+
+            // Try to fetch the CSS file through proxy
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cssUrl)}`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            const response = await fetch(proxyUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const css = await response.text();
+                // Fix relative URLs in CSS (for images, fonts, etc.)
+                const fixedCss = css.replace(/url\(['"]?([^'")\s]+)['"]?\)/g, (match, url) => {
+                    if (url.startsWith('data:') || url.startsWith('http')) {
+                        return match;
+                    }
+                    try {
+                        const absoluteUrl = new URL(url, cssUrl).href;
+                        return `url('${absoluteUrl}')`;
+                    } catch (e) {
+                        return match;
+                    }
+                });
+                styles += fixedCss + '\n';
+                console.log('✅ Loaded CSS:', cssUrl.substring(0, 50) + '...');
+            }
+        } catch (err) {
+            console.warn('Failed to fetch stylesheet:', err.message);
+        }
+    }
 
     return styles;
 }

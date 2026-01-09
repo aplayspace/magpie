@@ -123,30 +123,37 @@ h1 {
 
 .text-container {
     flex: 1;
-    padding: 2rem 1.5rem;
+    padding: 0;
+    overflow-y: auto;
+    background: white;
+}
+
+/* Only apply padding/sizing to paragraph mode (sample texts) */
+.text-container .paragraph {
+    padding: 0 1.5rem;
+    margin: 2rem 0;
     font-size: 1.1rem;
     line-height: 1.8;
-    overflow-y: auto;
 }
 
 .word {
-    display: inline-block;
+    display: inline;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color 0.2s;
     user-select: none;
     -webkit-user-select: none;
-    padding: 0 2px;
     position: relative;
 }
 
 .word:active {
-    transform: scale(0.98);
+    opacity: 0.8;
 }
 
 .word.redacted {
-    background-color: #000;
-    color: transparent;
+    background-color: #000 !important;
+    color: transparent !important;
     border-radius: 2px;
+    text-shadow: none !important;
 }
 
 .word.redacted::selection {
@@ -208,32 +215,21 @@ footer {
     -webkit-user-select: none;
 }
 
-/* Web page content wrapper */
+/* Web page content wrapper - faithful CSS presentation */
 .web-page-content {
     width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
 }
 
+/* Only apply critical overrides */
 .web-page-content img {
-    max-width: 100%;
-    height: auto;
+    max-width: 100% !important;
+    height: auto !important;
 }
 
 .web-page-content a {
-    pointer-events: none; /* Disable links in loaded pages */
-    text-decoration: none;
-    color: inherit;
-}
-
-/* Ensure loaded page content is readable */
-.web-page-content {
-    color: #333;
-    line-height: 1.6;
-}
-
-/* Override any fixed/sticky positioning from loaded pages */
-.web-page-content * {
-    position: relative !important;
+    pointer-events: none !important; /* Disable links in loaded pages */
 }
 
 /* Loading message */
