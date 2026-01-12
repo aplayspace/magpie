@@ -1,9 +1,11 @@
 // Curated list of open-access sources for content roulette
+// Expanded to 100+ URLs - each user's journey will be unique
 // All URLs point to specific articles (leaf nodes) for clean text-focused content
 const curatedSources = [
     {
         name: "Wikipedia",
         urls: [
+            // Art & Literature
             "https://en.wikipedia.org/wiki/Poetry",
             "https://en.wikipedia.org/wiki/Erasure_poetry",
             "https://en.wikipedia.org/wiki/Blackout_poetry",
@@ -14,12 +16,75 @@ const curatedSources = [
             "https://en.wikipedia.org/wiki/Surrealism",
             "https://en.wikipedia.org/wiki/William_S._Burroughs",
             "https://en.wikipedia.org/wiki/Cut-up_technique",
-            "https://en.wikipedia.org/wiki/New_York_City",
-            "https://en.wikipedia.org/wiki/Ocean",
-            "https://en.wikipedia.org/wiki/Democracy",
+            "https://en.wikipedia.org/wiki/Modernism",
+            "https://en.wikipedia.org/wiki/Postmodernism",
+            "https://en.wikipedia.org/wiki/Stream_of_consciousness",
+            "https://en.wikipedia.org/wiki/Automatic_writing",
+            "https://en.wikipedia.org/wiki/Metaphor",
+            "https://en.wikipedia.org/wiki/Symbolism_(arts)",
+            "https://en.wikipedia.org/wiki/Narrative",
+            "https://en.wikipedia.org/wiki/Short_story",
+            "https://en.wikipedia.org/wiki/Novel",
+            "https://en.wikipedia.org/wiki/Fiction",
+            // Philosophy & Ideas
+            "https://en.wikipedia.org/wiki/Consciousness",
             "https://en.wikipedia.org/wiki/Memory",
             "https://en.wikipedia.org/wiki/Time",
-            "https://en.wikipedia.org/wiki/Language"
+            "https://en.wikipedia.org/wiki/Language",
+            "https://en.wikipedia.org/wiki/Identity_(philosophy)",
+            "https://en.wikipedia.org/wiki/Reality",
+            "https://en.wikipedia.org/wiki/Perception",
+            "https://en.wikipedia.org/wiki/Truth",
+            "https://en.wikipedia.org/wiki/Meaning_(philosophy)",
+            "https://en.wikipedia.org/wiki/Existentialism",
+            "https://en.wikipedia.org/wiki/Absurdism",
+            "https://en.wikipedia.org/wiki/Nihilism",
+            // Places & Geography
+            "https://en.wikipedia.org/wiki/New_York_City",
+            "https://en.wikipedia.org/wiki/Ocean",
+            "https://en.wikipedia.org/wiki/Desert",
+            "https://en.wikipedia.org/wiki/Forest",
+            "https://en.wikipedia.org/wiki/Mountain",
+            "https://en.wikipedia.org/wiki/River",
+            "https://en.wikipedia.org/wiki/Island",
+            "https://en.wikipedia.org/wiki/City",
+            // Science & Nature
+            "https://en.wikipedia.org/wiki/Evolution",
+            "https://en.wikipedia.org/wiki/Ecology",
+            "https://en.wikipedia.org/wiki/Biodiversity",
+            "https://en.wikipedia.org/wiki/Climate",
+            "https://en.wikipedia.org/wiki/Weather",
+            "https://en.wikipedia.org/wiki/Light",
+            "https://en.wikipedia.org/wiki/Sound",
+            "https://en.wikipedia.org/wiki/Color",
+            "https://en.wikipedia.org/wiki/Water",
+            "https://en.wikipedia.org/wiki/Fire",
+            // Society & Culture
+            "https://en.wikipedia.org/wiki/Democracy",
+            "https://en.wikipedia.org/wiki/Freedom",
+            "https://en.wikipedia.org/wiki/Justice",
+            "https://en.wikipedia.org/wiki/Community",
+            "https://en.wikipedia.org/wiki/Culture",
+            "https://en.wikipedia.org/wiki/Tradition",
+            "https://en.wikipedia.org/wiki/Ritual",
+            "https://en.wikipedia.org/wiki/Festival",
+            "https://en.wikipedia.org/wiki/Music",
+            "https://en.wikipedia.org/wiki/Dance",
+            "https://en.wikipedia.org/wiki/Theatre",
+            "https://en.wikipedia.org/wiki/Film",
+            // Human Experience
+            "https://en.wikipedia.org/wiki/Love",
+            "https://en.wikipedia.org/wiki/Friendship",
+            "https://en.wikipedia.org/wiki/Loneliness",
+            "https://en.wikipedia.org/wiki/Joy",
+            "https://en.wikipedia.org/wiki/Sadness",
+            "https://en.wikipedia.org/wiki/Fear",
+            "https://en.wikipedia.org/wiki/Hope",
+            "https://en.wikipedia.org/wiki/Dream",
+            "https://en.wikipedia.org/wiki/Sleep",
+            "https://en.wikipedia.org/wiki/Death",
+            "https://en.wikipedia.org/wiki/Life",
+            "https://en.wikipedia.org/wiki/Birth"
         ]
     },
     {
@@ -65,6 +130,13 @@ const curatedSources = [
     }
 ];
 
+// Flatten all URLs into a single pool for easy access
+const allArticleUrls = curatedSources.flatMap(source =>
+    source.urls.map(url => ({ url, source: source.name }))
+);
+
+console.log(`📚 Content pool initialized with ${allArticleUrls.length} articles`);
+
 // Sample texts for fallback/offline use
 const sampleTexts = [
     {
@@ -95,6 +167,140 @@ let redactedWords = new Set();
 // Article cache for faster loading
 const CACHE_PREFIX = 'magpie_article_';
 const CACHE_EXPIRY_DAYS = 7;
+
+// User journey tracking - makes each user's experience unique
+const VISITED_KEY = 'magpie_visited_urls';
+const DISCOVERED_KEY = 'magpie_discovered_urls';
+
+// Get visited URLs from localStorage
+function getVisitedUrls() {
+    try {
+        const visited = localStorage.getItem(VISITED_KEY);
+        return visited ? JSON.parse(visited) : [];
+    } catch (e) {
+        console.warn('Error reading visited URLs:', e);
+        return [];
+    }
+}
+
+// Mark a URL as visited
+function markUrlVisited(url) {
+    try {
+        const visited = getVisitedUrls();
+        if (!visited.includes(url)) {
+            visited.push(url);
+            localStorage.setItem(VISITED_KEY, JSON.stringify(visited));
+            console.log(`✓ Marked as visited (${visited.length} total)`);
+        }
+    } catch (e) {
+        console.warn('Error marking URL visited:', e);
+    }
+}
+
+// Get discovered URLs (found in articles)
+function getDiscoveredUrls() {
+    try {
+        const discovered = localStorage.getItem(DISCOVERED_KEY);
+        return discovered ? JSON.parse(discovered) : [];
+    } catch (e) {
+        console.warn('Error reading discovered URLs:', e);
+        return [];
+    }
+}
+
+// Add discovered URLs to the pool
+function addDiscoveredUrls(urls) {
+    try {
+        const discovered = getDiscoveredUrls();
+        const newUrls = urls.filter(url => !discovered.some(d => d.url === url));
+
+        if (newUrls.length > 0) {
+            const newEntries = newUrls.map(url => ({
+                url,
+                discoveredAt: new Date().toISOString()
+            }));
+            discovered.push(...newEntries);
+
+            // Keep only most recent 200 discovered URLs
+            const trimmed = discovered.slice(-200);
+            localStorage.setItem(DISCOVERED_KEY, JSON.stringify(trimmed));
+            console.log(`🔍 Discovered ${newUrls.length} new article URLs (${trimmed.length} total in pool)`);
+        }
+    } catch (e) {
+        console.warn('Error saving discovered URLs:', e);
+    }
+}
+
+// Get all available URLs (curated + discovered - visited)
+function getAvailableUrls() {
+    const visited = getVisitedUrls();
+    const discovered = getDiscoveredUrls().map(d => ({ url: d.url, source: 'Discovered' }));
+
+    // Combine curated and discovered
+    const allUrls = [...allArticleUrls, ...discovered];
+
+    // Filter out visited
+    const available = allUrls.filter(item => !visited.includes(item.url));
+
+    console.log(`📊 Pool status: ${allUrls.length} total, ${visited.length} visited, ${available.length} available`);
+
+    return available;
+}
+
+// Check if a URL looks like an article (not navigation/homepage)
+function isArticleUrl(url, baseUrl) {
+    try {
+        const urlObj = new URL(url);
+        const base = new URL(baseUrl);
+
+        // Must be from the same domain or known good domains
+        const sameDomain = urlObj.hostname === base.hostname;
+        const knownDomains = ['wikipedia.org', 'bbc.co.uk', 'theconversation.com', 'aeon.co', 'gutenberg.org', 'publicdomainreview.org'];
+        const knownDomain = knownDomains.some(d => urlObj.hostname.includes(d));
+
+        if (!sameDomain && !knownDomain) return false;
+
+        // Exclude fragments, navigation, and short URLs
+        if (urlObj.hash) return false;
+        if (urlObj.pathname === '/' || urlObj.pathname === '') return false;
+
+        // Wikipedia: must have /wiki/ and not be special pages
+        if (urlObj.hostname.includes('wikipedia.org')) {
+            return urlObj.pathname.startsWith('/wiki/') &&
+                   !urlObj.pathname.includes(':') &&
+                   !urlObj.pathname.includes('Main_Page');
+        }
+
+        // BBC News: must have /news/articles/
+        if (urlObj.hostname.includes('bbc.co.uk')) {
+            return urlObj.pathname.includes('/news/articles/');
+        }
+
+        // The Conversation: article URLs
+        if (urlObj.hostname.includes('theconversation.com')) {
+            return urlObj.pathname.split('/').length >= 3; // Has topic/title
+        }
+
+        // Aeon: essays
+        if (urlObj.hostname.includes('aeon.co')) {
+            return urlObj.pathname.includes('/essays/');
+        }
+
+        // Gutenberg: book pages
+        if (urlObj.hostname.includes('gutenberg.org')) {
+            return urlObj.pathname.includes('/files/');
+        }
+
+        // Public Domain Review: essays
+        if (urlObj.hostname.includes('publicdomainreview.org')) {
+            return urlObj.pathname.includes('/essay/');
+        }
+
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
 
 // Cache helper functions
 function getCachedArticle(url) {
@@ -243,33 +449,35 @@ async function spinForContent() {
             await new Promise(resolve => setTimeout(resolve, 800));
         }
 
-        // TEST: Use two reliable sources for now
-        const testSources = [
-            {
-                name: "Wikipedia",
-                url: "https://en.wikipedia.org/wiki/Poetry"
-            },
-            {
-                name: "BBC News",
-                url: "https://www.bbc.co.uk/news/articles/crrn054nxe7o"
-            }
-        ];
+        // Get available URLs (excluding already visited)
+        const available = getAvailableUrls();
 
-        // Randomly select one
-        const selected = testSources[Math.floor(Math.random() * testSources.length)];
+        if (available.length === 0) {
+            // User has exhausted the pool - reset or show message
+            console.log('🎉 You\'ve explored all available articles!');
+            textContainer.innerHTML = '<div class="loading">🎉 You\'ve explored all available articles!<br><small>The pool will expand as you discover new links.</small></div>';
+            return;
+        }
+
+        // Randomly select an unvisited article
+        const selected = available[Math.floor(Math.random() * available.length)];
 
         // Show source info
         const sourceInfo = document.getElementById('sourceInfo');
         const sourceName = document.getElementById('sourceName');
-        sourceName.textContent = selected.name;
+        sourceName.textContent = selected.source;
         sourceInfo.style.display = 'block';
 
-        console.log(`✨ Testing with: ${selected.name} - ${selected.url}`);
+        console.log(`✨ Disrupting to: ${selected.source} - ${selected.url}`);
+        console.log(`   (${available.length} unvisited articles remaining)`);
         console.log('⏱️ Start time:', startTime);
 
         // Show loading state
         textContainer.innerHTML = '<div class="loading">✨ Disrupting the mischief...</div>';
         redactedWords.clear();
+
+        // Mark as visited
+        markUrlVisited(selected.url);
 
         // Try to load the web page
         console.log('📡 Calling loadWebPageFromUrl...');
@@ -472,13 +680,27 @@ async function processWebPage(html, baseUrl, preloadedStyles = null) {
         }
     });
 
+    // Extract article links for discovery (before converting to absolute)
+    const articleLinks = [];
     clonedContent.querySelectorAll('a').forEach(a => {
         if (a.href) {
-            a.href = new URL(a.href, baseUrl).href;
+            const absoluteUrl = new URL(a.href, baseUrl).href;
+            a.href = absoluteUrl;
+
+            // Collect article links for expanding the pool
+            // Filter for article-like URLs (not navigation, not fragments)
+            if (isArticleUrl(absoluteUrl, baseUrl)) {
+                articleLinks.push(absoluteUrl);
+            }
         }
     });
 
     console.log(`  ⏱️ Cloned and fixed URLs in ${(performance.now() - extractStart).toFixed(0)}ms`);
+
+    // Add discovered links to the pool
+    if (articleLinks.length > 0) {
+        addDiscoveredUrls(articleLinks);
+    }
 
     // Extract CSS from the page
     console.log('  🎨 Extracting CSS...');
