@@ -90,7 +90,13 @@ const curatedSources = [
     {
         name: "BBC News",
         urls: [
-            "https://www.bbc.co.uk/news/articles/crrn054nxe7o"
+            // Note: BBC News articles use dynamic URLs that change frequently
+            // These are example URLs - the discovery system will find current articles
+            "https://www.bbc.co.uk/news/articles/crrn054nxe7o",
+            "https://www.bbc.co.uk/news/articles/cx2l5kkxzvpo",
+            "https://www.bbc.co.uk/news/articles/c20gn8v8n8vo",
+            "https://www.bbc.co.uk/news/articles/c4gln7y7n7yo",
+            "https://www.bbc.co.uk/news/articles/c3e8d9n9d9xo"
         ]
     },
     {

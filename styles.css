@@ -274,6 +274,11 @@ footer {
     pointer-events: none !important; /* Disable links in loaded pages */
 }
 
+/* But allow redaction clicks on word spans inside links */
+.web-page-content a .word {
+    pointer-events: auto !important;
+}
+
 /* Content fade indicator (hidden in screenshots) */
 .screenshot-mode .content-fade {
     display: none;
